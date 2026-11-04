@@ -1,3 +1,4 @@
+
 {
   "id": "engrena-tensao-perigo",
   "title": "Engrena — Tensão & Perigo",
@@ -25,11 +26,8 @@
       "name": "Português (Brasil)",
       "path": "languages/pt-BR.json"
     }
-  ]
-}
-
-{
+  ],
   "url": "https://github.com/GutoOliveiraBR/engrena-tensao-perigo",
-  "manifest": "https://raw.githubusercontent.com/SEU_USUARIO/engrena-tensao-perigo/main/module.json",
-  "download": "https://github.com/SEU_USUARIO/engrena-tensao-perigo/releases/download/v0.8.0/engrena-tensao-perigo-v0.8.0.zip"
+  "manifest": "https://raw.githubusercontent.com/GutoOliveiraBR/engrena-tensao-perigo/main/module.json",
+  "download": "https://github.com/GutoOliveiraBR/engrena-tensao-perigo/releases/download/v0.8.0/engrena-tensao-perigo-v0.8.0.zip"
 }
