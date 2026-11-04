@@ -1,0 +1,79 @@
+<div class="etp-root">
+  {{#if expanded}}
+    <div class="etp-card">
+      <header class="etp-header" title="Arraste para mover este marcador">
+        <span class="etp-title">{{title}}</span>
+        <span class="etp-counter">{{counter}}</span>
+        <div class="etp-size-controls" role="group" aria-label="Tamanho do marcador">
+          <button type="button" class="etp-icon etp-size-button" data-etp="resize-smaller" title="Diminuir tamanho da janela (apenas para você)" aria-label="Diminuir janela">−</button>
+          <button type="button" class="etp-icon etp-size-button" data-etp="resize-larger" title="Aumentar tamanho da janela (apenas para você)" aria-label="Aumentar janela">+</button>
+        </div>
+        {{#if isGM}}
+          <button type="button" class="etp-icon" data-etp="switch" title="Alternar barra / relógio / painel">⇄</button>
+          <button type="button" class="etp-icon" data-etp="configure" title="Configurar">⚙</button>
+          <button type="button" class="etp-icon" data-etp="toggle" title="Ocultar dos jogadores">−</button>
+        {{/if}}
+      </header>
+      {{#if isPanel}}
+        <div class="etp-progress-panel">
+          {{#each panelTracks}}
+            <section class="etp-progress-track">
+              <div class="etp-progress-heading"><strong>{{label}}</strong><span class="etp-progress-value">{{value}}</span></div>
+              <div class="etp-progress-segments">
+                {{#each segments}}
+                  <button type="button" class="etp-progress-segment {{#if filled}}is-filled{{/if}}" style="--etp-color:{{../color}}" data-etp="track-cell" data-track="{{../index}}" data-index="{{index}}" title="{{../label}} — segmento {{number}}" {{#unless ../../isGM}}disabled{{/unless}}></button>
+                {{/each}}
+              </div>
+              <div class="etp-progress-bottom"><span class="etp-progress-description">{{description}}</span>
+              {{#if ../isGM}}<div class="etp-progress-buttons"><button type="button" data-etp="track-step" data-track="{{index}}" data-delta="-1" title="Diminuir {{label}}">−</button><button type="button" data-etp="track-step" data-track="{{index}}" data-delta="1" title="Aumentar {{label}}">+</button></div>{{/if}}
+              </div>
+            </section>
+          {{/each}}
+          {{#unless panelTracks}}<p>Configure as trilhas na engrenagem.</p>{{/unless}}
+        </div>
+      {{else if isBar}}
+        <div class="etp-bar">
+          <div class="etp-side etp-left">
+            {{#each leftSegments}}<button type="button" class="etp-cell {{#if filled}}is-filled{{/if}}" style="--etp-color:{{../leftColor}}" data-etp="left" data-index="{{index}}" title="Lado esquerdo — casa {{number}}" {{#unless ../isGM}}disabled{{/unless}}></button>{{/each}}
+          </div>
+          <div class="etp-center {{#if centerWinner}}is-active{{/if}}" {{#if centerWinner}}style="--etp-center-color:{{centerColor}}"{{/if}} title="O primeiro lado que completar conquista o centro">{{#if centerIcon}}<span class="etp-victory-icon" aria-label="Vitória">{{centerIcon}}</span>{{/if}}</div>
+          <div class="etp-side etp-right">
+            {{#each rightSegments}}<button type="button" class="etp-cell {{#if filled}}is-filled{{/if}}" style="--etp-color:{{../rightColor}}" data-etp="right" data-index="{{index}}" title="Lado direito — casa {{number}}" {{#unless ../isGM}}disabled{{/unless}}></button>{{/each}}
+          </div>
+        </div>
+        <footer class="etp-footer"><span>{{leftLabel}} · {{leftValue}}</span><span>{{rightLabel}} · {{rightValue}}</span></footer>
+      {{else}}
+        <div class="etp-clock-wrap">
+          <svg class="etp-clock" viewBox="0 0 220 220" role="img" aria-label="Relógio de perigo {{clockValue}} de {{clockCount}}">
+            {{#each clockSegments}}
+              <path d="{{path}}" class="etp-wedge {{#if filled}}is-filled{{/if}}" style="--etp-color:{{../clockColor}}" data-etp="clock" data-index="{{index}}" />
+            {{/each}}
+            <circle cx="110" cy="110" r="39" class="etp-clock-center {{#if clockComplete}}is-complete{{/if}}" style="--etp-color:{{clockColor}}" />
+            {{#if clockComplete}}{{#if clockCenterIcon}}<text x="110" y="127" class="etp-clock-skull" aria-label="Relógio concluído">{{clockCenterIcon}}</text>{{/if}}{{else}}<text x="110" y="117" class="etp-clock-text">{{clockValue}}/{{clockCount}}</text>{{/if}}
+          </svg>
+        </div>
+      {{/if}}
+      {{#if isGM}}
+        {{#if isPanel}}
+          <div class="etp-actions"><button type="button" data-etp="reset">Reiniciar todas as trilhas</button></div>
+        {{else if isBar}}
+          <div class="etp-actions etp-actions-bar">
+            <div class="etp-action-side">
+              <span class="etp-action-label" title="{{leftLabel}}">{{leftLabel}}</span>
+              <div class="etp-action-buttons"><button type="button" data-etp="left-decrease" title="Reduzir {{leftLabel}} em 1">− 1</button><button type="button" data-etp="left-increase" title="Aumentar {{leftLabel}} em 1">+ 1</button></div>
+            </div>
+            <button type="button" class="etp-reset" data-etp="reset">Zerar</button>
+            <div class="etp-action-side">
+              <span class="etp-action-label" title="{{rightLabel}}">{{rightLabel}}</span>
+              <div class="etp-action-buttons"><button type="button" data-etp="right-decrease" title="Reduzir {{rightLabel}} em 1">− 1</button><button type="button" data-etp="right-increase" title="Aumentar {{rightLabel}} em 1">+ 1</button></div>
+            </div>
+          </div>
+        {{else}}
+          <div class="etp-actions"><button type="button" data-etp="decrease">− 1</button><button type="button" data-etp="increase">+ 1</button><button type="button" data-etp="reset">Zerar</button></div>
+        {{/if}}
+      {{/if}}
+    </div>
+  {{else}}
+    {{!-- oculto para todos; mestre usa ferramenta Token Control para mostrar --}}
+  {{/if}}
+</div>

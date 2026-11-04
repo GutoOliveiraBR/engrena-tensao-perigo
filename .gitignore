@@ -1,0 +1,15 @@
+# Arquivos locais e temporários
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+node_modules/
+dist/
+*.log
+*.tmp
+*.bak
+*.zip
+.env
+.env.*
+!.env.example

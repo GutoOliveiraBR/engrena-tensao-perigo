@@ -1,0 +1,224 @@
+.engrena-tensao-perigo{position:fixed!important;top:65px!important;left:calc(50% - 220px)!important;transform:none!important;width:min(520px,92vw)!important;z-index:80!important;pointer-events:none!important;background:transparent!important;box-shadow:none!important;border:0!important;}
+.engrena-tensao-perigo .window-content,.engrena-tensao-perigo .etp-root{padding:0!important;background:transparent!important;overflow:visible!important;pointer-events:none!important;}
+.engrena-tensao-perigo button{cursor:pointer;border:0;min-width:0;pointer-events:auto}
+.engrena-tensao-perigo button:disabled{cursor:default;opacity:1}
+.etp-card{pointer-events:auto;background:rgba(18,22,31,.38);border:1px solid #637087;border-radius:13px;color:#f5f5f5;box-shadow:0 4px 16px #0005;padding:10px 12px;}
+.etp-header{cursor:grab;touch-action:none;user-select:none;display:flex;align-items:center;gap:8px;margin-bottom:8px;}.etp-title{font-weight:800;font-size:15px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.etp-counter{font-size:12px;color:#b8c9dc}.etp-icon{background:#39465a;color:#fff;border-radius:6px;padding:1px 9px;font-size:17px}
+.etp-bar{display:flex;align-items:stretch;gap:5px;min-height:47px}.etp-side{display:flex;flex:1;gap:3px;min-width:0;}.etp-cell{background:#e2e6ea26;border:1px solid #728098;flex:1;min-width:4px;border-radius:3px;padding:0}.etp-cell.is-filled{background:var(--etp-color);border-color:var(--etp-color);box-shadow:inset 0 0 0 1px #fff3}.etp-center{background:#354258;color:#fff;border:1px solid #8997a6;border-radius:6px;min-width:51px;font-size:22px;display:flex;flex-direction:column;justify-content:center;align-items:center;line-height:1}.etp-center.is-active{background:var(--etp-center-color);color:#fff;text-shadow:0 1px 2px #0009}.etp-center small{font-size:9px;margin-top:4px;letter-spacing:.5px}.etp-footer{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:#d8e1ee}.etp-actions{display:flex;justify-content:center;gap:7px;margin-top:8px}.etp-actions button{background:#39475b;color:white;border-radius:5px;padding:3px 12px;font-size:12px;flex:none}.etp-clock-wrap{display:flex;justify-content:center}.etp-clock{width:170px;height:170px;overflow:visible}.etp-wedge{fill:#e2e6ea26;stroke:#1c2635;stroke-width:3;cursor:pointer}.etp-wedge.is-filled{fill:var(--etp-color)}.etp-clock-center{fill:#2a3447;stroke:#a5b3c6;stroke-width:2;pointer-events:none}.etp-clock-center.is-complete{fill:var(--etp-color);stroke:var(--etp-color)}.etp-clock-text{text-anchor:middle;fill:white;font-size:23px;font-weight:700;pointer-events:none}.etp-launch{pointer-events:auto!important;background:#293648;color:white;border:1px solid #728098;border-radius:10px;padding:8px 13px;margin:auto;display:block;box-shadow:0 4px 15px #0008}.etp-config{display:grid;gap:8px}.etp-form-row{display:flex;align-items:center;justify-content:space-between;gap:14px}.etp-form-row>span{flex:1}.etp-form-row input,.etp-form-row select{width:50%;box-sizing:border-box}.etp-config fieldset{border:1px solid #7777;padding:10px;display:grid;gap:8px}.etp-show{display:flex;align-items:center;gap:8px}
+
+.engrena-tensao-perigo:has(.etp-root:not(:has(.etp-card))){display:none!important;}
+.etp-header button{cursor:pointer;touch-action:auto;}
+
+.etp-center:not(.is-active){background:#222b3b;color:transparent;}
+.etp-victory-icon{display:inline-flex;align-items:center;justify-content:center;font-size:27px;line-height:1;color:white;filter:drop-shadow(0 1px 2px #000a)}
+.etp-clock-skull{text-anchor:middle;fill:#fff;font-family:Arial,"Segoe UI Symbol",sans-serif;font-size:56px;font-weight:700;pointer-events:none;paint-order:stroke;stroke:#0008;stroke-width:1px}
+
+/* Galeria visual — seleção independente para cada marcador. */
+.etp-picker{display:flex;flex-direction:column;gap:7px;margin:8px 0 12px;min-width:0}
+.etp-picker-title{font-weight:700;font-size:13px}
+.etp-icon-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px;max-height:200px;overflow-y:auto;padding:5px;border:1px solid #7775;border-radius:8px}
+.etp-icon-option{display:block;position:relative;cursor:pointer;min-width:0}
+.etp-icon-option input{position:absolute;opacity:0;width:1px;height:1px;left:0;top:0}
+.etp-icon-choice{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;min-height:59px;padding:5px;background:#253247;border:2px solid #6d7a90;border-radius:7px;color:#f5f5f5;text-align:center;box-sizing:border-box}
+.etp-icon-option input:checked+.etp-icon-choice{border-color:#75bdeb;background:#174969;box-shadow:0 0 0 1px #a9dafa}
+.etp-icon-option input:focus-visible+.etp-icon-choice{outline:3px solid #ffe38a;outline-offset:2px}
+.etp-option-glyph{font-size:23px;line-height:1.3;font-family:'Segoe UI Emoji','Apple Color Emoji',sans-serif}
+.etp-option-name{font-size:10px;line-height:1.2;overflow-wrap:anywhere}
+.etp-victory-icon,.etp-clock-skull{font-family:'Segoe UI Emoji','Apple Color Emoji','Segoe UI Symbol',sans-serif}
+
+/* v0.6.1: diálogo sempre acessível, inclusive em resoluções menores. */
+.etp-config-dialog {
+  width: min(690px, 96vw) !important;
+  max-width: 96vw !important;
+  max-height: 88vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+.etp-config-dialog .window-content {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  max-height: calc(88vh - 45px) !important;
+  overflow: hidden !important;
+}
+.etp-config-dialog .dialog-content {
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-right: 8px;
+}
+.etp-config-dialog .dialog-buttons,
+.etp-config-dialog .form-footer {
+  flex: 0 0 auto !important;
+}
+.etp-config-dialog .etp-config {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  padding: 2px 2px 10px;
+}
+.etp-config-dialog .etp-config fieldset { min-width: 0; }
+.etp-config-dialog .etp-icon-gallery {
+  max-height: 150px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (max-width: 540px) {
+  .etp-config-dialog .etp-form-row { align-items: stretch; flex-direction: column; gap: 4px; }
+  .etp-config-dialog .etp-form-row input,
+  .etp-config-dialog .etp-form-row select { width: 100%; }
+  .etp-config-dialog .etp-icon-gallery { grid-template-columns: repeat(auto-fill,minmax(74px,1fr)); }
+}
+
+/* v0.6.2 — rolagem GERAL independente da rolagem interna das galerias.
+   O form é filho direto da área de conteúdo em DialogV2 no Foundry 14. */
+.etp-config-dialog .window-content { min-height: 0 !important; overflow: hidden !important; }
+.etp-config-dialog .dialog-content { min-height: 0 !important; overflow: hidden !important; }
+.etp-config-dialog .etp-config {
+  display: grid !important;
+  align-content: start !important;
+  box-sizing: border-box !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: min(68vh, 630px) !important;
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+  scrollbar-width: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior-y: contain;
+  padding: 10px 14px 18px 6px !important;
+}
+.etp-config-dialog .etp-config > * { min-width: 0; }
+.etp-config-dialog .etp-config .etp-icon-gallery {
+  max-height: 148px;
+  overflow-y: auto !important;
+}
+@media (max-height: 760px) {
+  .etp-config-dialog .etp-config { max-height: 58vh !important; }
+}
+
+/* 0.6.3: contenção da rolagem no próprio HTML, independente da altura automática do DialogV2. */
+.etp-config-dialog .etp-main-scroll {
+  height: min(55vh, 520px) !important;
+  max-height: min(55vh, 520px) !important;
+  min-height: 0 !important;
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+  overscroll-behavior-y: auto !important;
+  scrollbar-gutter: stable !important;
+  scrollbar-width: auto !important;
+  display: block !important;
+  flex: none !important;
+}
+.etp-config-dialog .etp-main-scroll > .etp-config {
+  height: auto !important;
+  max-height: none !important;
+  min-height: max-content !important;
+  overflow: visible !important;
+  display: grid !important;
+  padding: 0 4px 12px !important;
+}
+.etp-config-dialog .etp-icon-gallery {overscroll-behavior-y:auto !important;}
+@media(max-height:580px) {
+ .etp-config-dialog .etp-main-scroll {height: 45vh !important; max-height:45vh !important;}
+}
+
+/* v0.6.5: controles independentes dos dois lados da barra */
+.etp-actions-bar{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px;align-items:end}
+.etp-action-side{display:flex;min-width:0;flex-direction:column;align-items:center;gap:4px}
+.etp-action-label{font-size:11px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e6eaf2}
+.etp-action-buttons{display:flex;gap:4px;justify-content:center}
+.etp-actions-bar .etp-action-buttons button{padding:4px 10px}
+.etp-actions-bar .etp-reset{padding:4px 9px;align-self:end}
+
+/* v0.7.0: modo Painel de Progresso */
+.engrena-tensao-perigo:has(.etp-progress-panel){width:min(690px,95vw)!important;}
+.engrena-tensao-perigo .etp-card{backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);}
+.etp-progress-panel{max-height:min(62vh,600px);overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:4px 5px 2px;}
+.etp-progress-track{margin:0 0 12px;padding:3px 1px 8px;border-bottom:1px solid rgba(220,230,240,.16);}
+.etp-progress-heading,.etp-progress-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.etp-progress-heading{font-size:13px;margin-bottom:8px;}
+.etp-progress-value{font-size:14px;font-weight:750;white-space:nowrap;}
+.etp-progress-segments{display:flex;gap:4px;min-height:13px;}
+.etp-progress-segment{display:block;flex:1;min-width:2px;height:12px;padding:0;border:0;border-radius:6px;background:rgba(220,230,240,.24);cursor:pointer;}
+.etp-progress-segment.is-filled{background:var(--etp-color);}
+.etp-progress-bottom{margin-top:6px;min-height:28px;}
+.etp-progress-description{font-size:12px;color:#e1e5eb;line-height:1.4;text-shadow:0 1px 2px #000;}
+.etp-progress-buttons{display:flex;gap:6px;flex:none;}
+.etp-progress-buttons button{font-size:17px;line-height:1;width:27px;height:27px;border-radius:50%;background:rgba(40,51,65,.7);color:white;border:1px solid #b8c2cd;}
+.etp-track-fields{min-width:0;}
+.etp-help{font-size:12px;color:#bbb;line-height:1.35;margin:2px 0 8px;}
+.etp-track-editor{display:flex;flex-direction:column;gap:12px;}
+.etp-track-editor-row{border:1px solid #7778;padding:9px;border-radius:8px;display:grid;gap:7px;min-width:0;}
+.etp-track-editor-head{display:flex;align-items:center;justify-content:space-between;}
+.etp-track-editor-head button,.etp-add-track{padding:6px 10px;cursor:pointer;}
+.etp-add-track{margin-top:6px;}
+@media(max-width:550px){.etp-progress-description{font-size:11px}.etp-progress-track{margin-bottom:8px}}
+
+
+/* v0.7.1 — janela ajustável por usuário, com layout responsivo. */
+.engrena-tensao-perigo,
+.engrena-tensao-perigo:has(.etp-progress-panel) {
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+  max-width: calc(100vw - 16px) !important;
+}
+.engrena-tensao-perigo .etp-root,
+.engrena-tensao-perigo .etp-card {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+.engrena-tensao-perigo .etp-card {container-type:inline-size;}
+.engrena-tensao-perigo .etp-header {gap:5px; min-width:0; flex-wrap:nowrap;}
+.engrena-tensao-perigo .etp-title {min-width:0; flex:1 1 auto;}
+.engrena-tensao-perigo .etp-counter {white-space:nowrap; flex:none;}
+.etp-size-controls {display:flex;gap:3px;flex:none;}
+.engrena-tensao-perigo .etp-size-button {padding:1px 7px;font-size:17px;line-height:24px;min-width:27px;min-height:27px;}
+/* Relógio acompanha a largura do contêiner sem exceder a altura da viewport. */
+.engrena-tensao-perigo .etp-clock {width:clamp(118px, 58cqw, 280px);height:auto;max-height:min(42vh,280px);aspect-ratio:1;}
+/* Barras e centro se adaptam à largura. */
+.engrena-tensao-perigo .etp-bar {min-height:clamp(28px, 9cqw, 55px);}
+.engrena-tensao-perigo .etp-center {min-width:clamp(32px, 10cqw, 52px);}
+.engrena-tensao-perigo .etp-victory-icon {font-size:clamp(18px, 5cqw, 29px);}
+.engrena-tensao-perigo .etp-cell {min-width:0;}
+.engrena-tensao-perigo .etp-footer {gap:6px;overflow-wrap:anywhere;}
+/* Painel de trilhas: linhas compactas, com rolagem vertical só quando necessária. */
+.engrena-tensao-perigo .etp-progress-panel {width:100%;box-sizing:border-box;max-height:min(54vh,530px);overflow-y:auto;overflow-x:hidden;}
+.engrena-tensao-perigo .etp-progress-track {margin-bottom:5px;padding:2px 0 5px;}
+.engrena-tensao-perigo .etp-progress-heading {margin-bottom:4px;}
+.engrena-tensao-perigo .etp-progress-bottom {margin-top:3px;min-height:22px;}
+.engrena-tensao-perigo .etp-progress-segments {gap:clamp(2px, .6cqw, 5px);min-height:10px;}
+.engrena-tensao-perigo .etp-progress-segment {height:clamp(8px, 1.8cqw, 13px);}
+.engrena-tensao-perigo .etp-progress-buttons button {height:25px;width:25px;}
+@container (max-width: 400px) {
+  .etp-progress-heading {font-size:12px;}
+  .etp-progress-description {font-size:10px;line-height:1.25;}
+  .etp-progress-buttons button {height:22px;width:22px;font-size:14px;}
+  .etp-progress-bottom {gap:5px;}
+  .etp-actions-bar {gap:3px;}
+  .etp-actions-bar .etp-action-buttons button {padding:3px 5px;font-size:11px;}
+  .etp-header .etp-icon {padding:1px 5px;font-size:15px;}
+}
+@container (max-width: 315px) {
+  .etp-title {font-size:12px;}
+  .etp-counter {font-size:10px;}
+  .etp-header {gap:3px;}
+  .etp-progress-description {max-width:75%;}
+}
+
+/* v0.8.0: biblioteca de marcadores independentes */
+.etp-manager {display:grid;gap:12px;max-height:min(63vh,580px);overflow-y:auto;padding:6px 8px 12px;scrollbar-gutter:stable;}
+.etp-manager p {margin:0 0 5px;line-height:1.45;}
+.etp-manager-list{display:grid;gap:7px;}
+.etp-manager-row {display:flex;align-items:center;gap:5px;flex-wrap:wrap;border:1px solid rgba(150,150,150,.45);border-radius:7px;padding:8px;}
+.etp-manager-summary {flex:1 1 165px;min-width:130px;display:flex;flex-direction:column;gap:4px;overflow-wrap:anywhere;}
+.etp-manager-summary small {opacity:.75;}
+.etp-manager-row button,.etp-manager-create button {flex:0 0 auto;cursor:pointer;padding:5px 9px;}
+.etp-manager-create {display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid #8885;padding-top:12px;}
+.etp-manager-dialog {width:min(840px,96vw)!important;max-height:90vh!important;}
+.etp-manager-dialog .window-content {min-height:0!important;overflow-y:auto!important;}

@@ -1,0 +1,29 @@
+{
+  "id": "engrena-tensao-perigo",
+  "title": "Engrena — Tensão & Perigo",
+  "description": "Barra de tensão, relógio de perigo e painel de progresso, com biblioteca de marcadores independentes, exibição simultânea e sincronização.",
+  "version": "0.8.0",
+  "authors": [
+    {
+      "name": "Engrena"
+    }
+  ],
+  "compatibility": {
+    "minimum": "14.369",
+    "verified": "14.369",
+    "maximum": "14"
+  },
+  "esmodules": [
+    "scripts/main.js"
+  ],
+  "styles": [
+    "styles/main.css"
+  ],
+  "languages": [
+    {
+      "lang": "pt-BR",
+      "name": "Português (Brasil)",
+      "path": "languages/pt-BR.json"
+    }
+  ]
+}
