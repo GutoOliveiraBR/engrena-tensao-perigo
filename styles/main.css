@@ -222,3 +222,26 @@
 .etp-manager-create {display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid #8885;padding-top:12px;}
 .etp-manager-dialog {width:min(840px,96vw)!important;max-height:90vh!important;}
 .etp-manager-dialog .window-content {min-height:0!important;overflow-y:auto!important;}
+
+/* v0.8.2 — alça de redimensionamento livre, local e limitada à área útil. */
+.engrena-tensao-perigo .etp-card {position:relative;}
+.engrena-tensao-perigo.etp-user-sized .etp-root,
+.engrena-tensao-perigo.etp-user-sized .etp-card {height:100%;min-height:0;}
+.engrena-tensao-perigo.etp-user-sized .etp-card {display:flex;flex-direction:column;}
+.engrena-tensao-perigo.etp-user-sized .etp-header {flex:0 0 auto;}
+.engrena-tensao-perigo.etp-user-sized .etp-progress-panel {flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;}
+.engrena-tensao-perigo.etp-user-sized .etp-clock-wrap {flex:1 1 auto;min-height:0;align-items:center;}
+.engrena-tensao-perigo.etp-user-sized .etp-clock {height:100%;max-height:100%;width:auto;max-width:100%;aspect-ratio:1;}
+.engrena-tensao-perigo.etp-user-sized .etp-bar {flex:1 1 auto;max-height:110px;min-height:0;align-self:stretch;}
+.engrena-tensao-perigo.etp-user-sized .etp-footer {flex:0 0 auto;}
+.engrena-tensao-perigo.etp-user-sized .etp-actions {flex:0 0 auto;}
+.engrena-tensao-perigo .etp-resize-handle {
+ position:absolute;right:1px;bottom:1px;z-index:10;width:24px;height:24px;
+ cursor:nwse-resize;touch-action:none;user-select:none;pointer-events:auto;
+ border-bottom-right-radius:10px;
+ background:linear-gradient(135deg,transparent 0 48%,rgba(190,204,222,.92) 49% 54%,transparent 55% 65%,rgba(190,204,222,.92) 66% 71%,transparent 72%);
+ opacity:.82;
+}
+.engrena-tensao-perigo .etp-resize-handle:hover {opacity:1;filter:brightness(1.25);}
+.engrena-tensao-perigo .etp-card {padding-bottom:15px;}
+@media (pointer:coarse){.engrena-tensao-perigo .etp-resize-handle{width:34px;height:34px;}}

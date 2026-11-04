@@ -4,10 +4,6 @@
       <header class="etp-header" title="Arraste para mover este marcador">
         <span class="etp-title">{{title}}</span>
         <span class="etp-counter">{{counter}}</span>
-        <div class="etp-size-controls" role="group" aria-label="Tamanho do marcador">
-          <button type="button" class="etp-icon etp-size-button" data-etp="resize-smaller" title="Diminuir tamanho da janela (apenas para você)" aria-label="Diminuir janela">−</button>
-          <button type="button" class="etp-icon etp-size-button" data-etp="resize-larger" title="Aumentar tamanho da janela (apenas para você)" aria-label="Aumentar janela">+</button>
-        </div>
         {{#if isGM}}
           <button type="button" class="etp-icon" data-etp="switch" title="Alternar barra / relógio / painel">⇄</button>
           <button type="button" class="etp-icon" data-etp="configure" title="Configurar">⚙</button>
@@ -72,6 +68,7 @@
           <div class="etp-actions"><button type="button" data-etp="decrease">− 1</button><button type="button" data-etp="increase">+ 1</button><button type="button" data-etp="reset">Zerar</button></div>
         {{/if}}
       {{/if}}
+      <div class="etp-resize-handle" role="separator" aria-label="Arraste para ajustar largura e altura" title="Arraste para redimensionar este marcador (somente para você)"></div>
     </div>
   {{else}}
     {{!-- oculto para todos; mestre usa ferramenta Token Control para mostrar --}}

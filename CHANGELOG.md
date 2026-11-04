@@ -1,3 +1,7 @@
+## [0.8.2] - 2026-11-04
+- Redimensionamento por arraste da quina inferior direita, em dois eixos, com limites por modo e armazenamento local.
+- Remoção dos botões de largura do cabeçalho.
+
 # Histórico de alterações
 
 ## 0.8.1

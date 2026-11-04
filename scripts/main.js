@@ -36,11 +36,55 @@ function applyWidth(markerId){
  const x=Math.max(8,Math.min(window.innerWidth-width-8,root.getBoundingClientRect().left));
  root.style.setProperty('left',`${x}px`,'important');
 }
-function resizeLocal(markerId,delta){
- const mode=currentMode(markerId),cfg=WIDTH_PRESETS[mode];
- const next=clampWidth(storedWidth(mode,markerId)+delta*cfg.step,mode);
- try{localStorage.setItem(widthKey(mode,markerId),String(next));}catch{}
- applyWidth(markerId);
+// Dimensões são preferências locais: não mudam os dados do mundo nem o tamanho de outro usuário.
+const HEIGHT_LIMITS = Object.freeze({bar:{min:145,max:380},clock:{min:215,max:650},panel:{min:170,max:760}});
+function heightKey(mode,markerId){return `${ID}:height:${game.world.id}:${markerId}:${mode}`;}
+function clampHeight(value,mode,top=8){
+ const limits=HEIGHT_LIMITS[mode]||HEIGHT_LIMITS.bar;
+ const maximum=Math.max(90,Math.min(limits.max,window.innerHeight-top-8));
+ return Math.round(Math.max(Math.min(limits.min,maximum),Math.min(maximum,Number(value)||limits.min)));
+}
+function applySavedHeight(markerId){
+ const dock=docks.get(markerId),root=dock?.element;if(!root)return;
+ const mode=currentMode(markerId);let value=null;
+ try{value=localStorage.getItem(heightKey(mode,markerId));}catch{}
+ root.classList.toggle('etp-user-sized',value!==null);
+ if(value!==null)root.style.setProperty('height',`${clampHeight(value,mode,root.getBoundingClientRect().top)}px`,'important');
+ else root.style.removeProperty('height');
+}
+function attachResize(markerId){
+ const root=docks.get(markerId)?.element,handle=root?.querySelector('.etp-resize-handle');
+ if(!handle)return;
+ handle.addEventListener('pointerdown',event=>{
+  if(event.button!==0)return;
+  event.preventDefault();event.stopPropagation();
+  const mode=currentMode(markerId),box=root.getBoundingClientRect();
+  const initialX=event.clientX,initialY=event.clientY,initialWidth=box.width,initialHeight=box.height;
+  root.classList.add('etp-user-sized');
+  handle.setPointerCapture(event.pointerId);
+  const move=e=>{
+   if(e.pointerId!==event.pointerId)return;
+   const width=clampWidth(initialWidth+e.clientX-initialX,mode);
+   const height=clampHeight(initialHeight+e.clientY-initialY,mode,box.top);
+   root.style.setProperty('width',`${width}px`,'important');
+   root.style.setProperty('height',`${height}px`,'important');
+  };
+  const finish=e=>{
+   if(e.pointerId!==event.pointerId)return;
+   handle.removeEventListener('pointermove',move);
+   handle.removeEventListener('pointerup',finish);
+   handle.removeEventListener('pointercancel',finish);
+   const rect=root.getBoundingClientRect();
+   try{
+    localStorage.setItem(widthKey(mode,markerId),String(Math.round(rect.width)));
+    localStorage.setItem(heightKey(mode,markerId),String(Math.round(rect.height)));
+   }catch{}
+   if(handle.hasPointerCapture(event.pointerId))handle.releasePointerCapture(event.pointerId);
+  };
+  handle.addEventListener('pointermove',move);
+  handle.addEventListener('pointerup',finish);
+  handle.addEventListener('pointercancel',finish);
+ });
 }
 function restorePosition(markerId){
  const dock=docks.get(markerId);if(!dock?.element)return;
@@ -132,7 +176,7 @@ class TrackerDock extends API.HandlebarsApplicationMixin(API.ApplicationV2){
  static PARTS={main:{template:`modules/${ID}/templates/dock.hbs`}};
  constructor(markerId){super({id:`engrena-tensao-perigo-${markerId}`});this.markerId=markerId;}
  async _prepareContext(){const s=getState(this.markerId);const isGM=game.user.isGM;return {...s,isGM,expanded:s.visible,isPanel:s.mode==='panel',counter:s.mode==='panel'?`${s.tracks.length} trilhas`:s.mode==='clock'?`${s.clockFilled}/${s.clockCount}`:`${s.leftFilled}/${s.leftCount} · ${s.rightFilled}/${s.rightCount}`,isBar:s.mode==='bar',panelTracks:s.tracks.map((t,index)=>({...t,index,value:`${t.filled}/${t.count}`,segments:Array.from({length:t.count},(_,i)=>({index:i,number:i+1,filled:i<t.filled}))})),leftValue:`${s.leftFilled}/${s.leftCount}`,rightValue:`${s.rightFilled}/${s.rightCount}`,clockValue:s.clockFilled,clockComplete:s.clockFilled===s.clockCount,centerColor:s.centerWinner==='left'?s.leftColor:s.centerWinner==='right'?s.rightColor:null,centerIcon:s.centerWinner==='left'?iconGlyph(s.leftIcon):s.centerWinner==='right'?iconGlyph(s.rightIcon):null,clockCenterIcon:s.clockFilled===s.clockCount?iconGlyph(s.clockIcon):null,leftSegments:Array.from({length:s.leftCount},(_,i)=>({index:i,number:i+1,filled:i<s.leftFilled})),rightSegments:Array.from({length:s.rightCount},(_,i)=>({index:i,number:i+1,filled:i<s.rightFilled})).reverse(),clockSegments:wedges(s.clockCount,s.clockFilled)};}
- _onRender(context,options){super._onRender(context,options);applyWidth(this.markerId);restorePosition(this.markerId);attachDrag(this.markerId);this.element.querySelectorAll('[data-etp]').forEach(el=>{el.addEventListener('click',async ev=>{const changeHere=patch=>change(patch,this.markerId);const cmd=el.dataset.etp;if(cmd==='resize-smaller')return resizeLocal(this.markerId,-1);if(cmd==='resize-larger')return resizeLocal(this.markerId,1);if(!game.user.isGM)return;const s=getState(this.markerId);if(cmd==='configure')return configure(this.markerId);if(cmd==='switch')return changeHere({mode:s.mode==='bar'?'clock':s.mode==='clock'?'panel':'bar'});if(cmd==='toggle')return changeHere({visible:!s.visible});if(cmd==='left'||cmd==='right'||cmd==='clock'){const key=cmd==='clock'?'clockFilled':cmd==='left'?'leftFilled':'rightFilled';const index=Number(el.dataset.index);return changeHere({[key]:s[key]===index+1?index:index+1});}if(cmd==='track-step'||cmd==='track-cell'){
+ _onRender(context,options){super._onRender(context,options);applyWidth(this.markerId);restorePosition(this.markerId);applySavedHeight(this.markerId);attachDrag(this.markerId);attachResize(this.markerId);this.element.querySelectorAll('[data-etp]').forEach(el=>{el.addEventListener('click',async ev=>{const changeHere=patch=>change(patch,this.markerId);const cmd=el.dataset.etp;if(!game.user.isGM)return;const s=getState(this.markerId);if(cmd==='configure')return configure(this.markerId);if(cmd==='switch')return changeHere({mode:s.mode==='bar'?'clock':s.mode==='clock'?'panel':'bar'});if(cmd==='toggle')return changeHere({visible:!s.visible});if(cmd==='left'||cmd==='right'||cmd==='clock'){const key=cmd==='clock'?'clockFilled':cmd==='left'?'leftFilled':'rightFilled';const index=Number(el.dataset.index);return changeHere({[key]:s[key]===index+1?index:index+1});}if(cmd==='track-step'||cmd==='track-cell'){
  const ti=Number(el.dataset.track);if(!Number.isInteger(ti)||ti<0||ti>=s.tracks.length)return;
  const tracks=s.tracks.map(t=>({...t}));const t=tracks[ti];
  if(cmd==='track-step')t.filled=clamp(t.filled+Number(el.dataset.delta),0,t.count);
@@ -256,7 +300,7 @@ function onConfigTrackClick(e){
 Hooks.once('ready',async()=>{
  document.addEventListener('click',onConfigTrackClick);
  document.addEventListener('click',onManagerClick);
- window.addEventListener('resize',()=>{for(const id of docks.keys()){applyWidth(id);restorePosition(id);}});
+ window.addEventListener('resize',()=>{for(const id of docks.keys()){applyWidth(id);restorePosition(id);applySavedHeight(id);}});
  if(game.user.isGM && getCollection().length===0){
   const legacy=normalized(game.settings.get(ID,'state'));
   await saveCollection([{id:makeId(),...legacy}]);
