@@ -1,6 +1,10 @@
-# Engrena — Tensão & Perigo v0.8.0
+# Engrena — Tensão & Perigo v0.8.1
 
-Compatibilidade declarada: Foundry VTT 14.369. Sistema de RPG: agnóstico.
+Compatibilidade declarada: Foundry VTT 13.x a 14.369. Sistema de RPG: agnóstico.
+
+**Suporte v13 experimental:** as APIs utilizadas (ApplicationV2, DialogV2, getSceneControlButtons) estão documentadas na v13, mas esta atualização ainda não foi executada em uma instância real de Foundry v13. O campo `verified` permanece em 14.369 porque essa é a versão de referência conhecida; ele não comprova testes em v13.
+
+**Releases GitHub:** o manifesto aponta para `main` e o download desta versão aponta para a release `v0.8.1`. Atualize e publique o `module.json` no GitHub antes de oferecer a atualização aos usuários. Para o atualizador nativo, as URLs precisam estar acessíveis ao Foundry sem autenticação.
 
 ## Nova biblioteca de marcadores
 
@@ -24,4 +28,4 @@ Feche o Foundry e substitua a pasta `Data/modules/engrena-tensao-perigo` pela pa
 
 ## Segurança e testes
 
-As operações são iniciadas pelo mestre e não removem documentos/atores/cenas do mundo. Os novos estados usam `game.settings` de escopo `world`. Verificações locais de sintaxe e lógica realizadas; execução real com Foundry 14.369 e múltiplos clientes ainda precisa ser validada.
+As operações são iniciadas pelo mestre e não removem documentos/atores/cenas do mundo. Os novos estados usam `game.settings` de escopo `world`. Verificação local de sintaxe e inspeção estática das APIs realizadas; execução real em Foundry v13 e 14.369 e múltiplos clientes continua necessária.

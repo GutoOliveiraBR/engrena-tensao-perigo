@@ -2,16 +2,16 @@
   "id": "engrena-tensao-perigo",
   "title": "Engrena — Tensão & Perigo",
   "description": "Barra de tensão, relógio de perigo e painel de progresso, com biblioteca de marcadores independentes, exibição simultânea e sincronização.",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "authors": [
     {
       "name": "Engrena"
     }
   ],
   "compatibility": {
-    "minimum": "14.369",
+    "minimum": "13",
     "verified": "14.369",
-    "maximum": "14"
+    "maximum": "14.369"
   },
   "esmodules": [
     "scripts/main.js"
@@ -25,5 +25,8 @@
       "name": "Português (Brasil)",
       "path": "languages/pt-BR.json"
     }
-  ]
+  ],
+  "url": "https://github.com/GutoOliveiraBR/engrena-tensao-perigo",
+  "manifest": "https://raw.githubusercontent.com/GutoOliveiraBR/engrena-tensao-perigo/main/module.json",
+  "download": "https://github.com/GutoOliveiraBR/engrena-tensao-perigo/releases/download/v0.8.1/engrena-tensao-perigo-v0.8.1.zip"
 }
