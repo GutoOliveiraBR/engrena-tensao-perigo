@@ -26,6 +26,10 @@ O tamanho e a posição de cada instância são locais por navegador e por marca
 
 Feche o Foundry e substitua a pasta `Data/modules/engrena-tensao-perigo` pela pasta do ZIP. Reinicie e ative o módulo no mundo.
 
+## Manifesto para Instalação via Foundry
+
+https://raw.githubusercontent.com/GutoOliveiraBR/engrena-tensao-perigo/main/module.json
+
 ## Segurança e testes
 
 As operações são iniciadas pelo mestre e não removem documentos/atores/cenas do mundo. Os novos estados usam `game.settings` de escopo `world`. Verificação local de sintaxe e inspeção estática das APIs realizadas; execução real em Foundry v13 e 14.369 e múltiplos clientes continua necessária.
