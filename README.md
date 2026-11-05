@@ -1,10 +1,10 @@
-# Engrena — Tensão & Perigo v0.8.2
+# Engrena — Tensão & Perigo v0.9.0
 
 Compatibilidade declarada: Foundry VTT 13.x a 14.369. Sistema de RPG: agnóstico.
 
 **Suporte v13 experimental:** as APIs utilizadas (ApplicationV2, DialogV2, getSceneControlButtons) estão documentadas na v13, mas esta atualização ainda não foi executada em uma instância real de Foundry v13. O campo `verified` permanece em 14.369 porque essa é a versão de referência conhecida; ele não comprova testes em v13.
 
-**Releases GitHub:** o manifesto aponta para `main` e o download desta versão aponta para a release `v0.8.2`. Atualize e publique o `module.json` no GitHub antes de oferecer a atualização aos usuários. Para o atualizador nativo, as URLs precisam estar acessíveis ao Foundry sem autenticação.
+**Releases GitHub:** o manifesto aponta para `main` e o download desta versão aponta para a release `v0.9.0`. Atualize e publique o `module.json` no GitHub antes de oferecer a atualização aos usuários. Para o atualizador nativo, as URLs precisam estar acessíveis ao Foundry sem autenticação.
 
 ## Nova biblioteca de marcadores
 
@@ -30,7 +30,7 @@ Feche o Foundry e substitua a pasta `Data/modules/engrena-tensao-perigo` pela pa
 
 As operações são iniciadas pelo mestre e não removem documentos/atores/cenas do mundo. Os novos estados usam `game.settings` de escopo `world`. Verificação local de sintaxe e inspeção estática das APIs realizadas; execução real em Foundry v13 e 14.369 e múltiplos clientes continua necessária.
 
-## v0.8.2 — redimensionar pelo canto inferior direito
+## v0.9.0 — redimensionar pelo canto inferior direito
 
 - Os botões de tamanho do cabeçalho foram removidos.
 - Arraste a alça no canto inferior direito de qualquer barra, relógio ou painel para alterar largura e altura.
@@ -40,3 +40,25 @@ As operações são iniciadas pelo mestre e não removem documentos/atores/cenas
 - As larguras personalizadas da v0.8.1 continuam sendo lidas, quando existentes.
 
 **Teste pendente:** validar visualmente com Foundry v13 e v14.369, inclusive em telas pequenas.
+
+
+## v0.9.0 — Eventos narrativos (opcionais)
+
+Na configuração de cada marcador, use **Eventos narrativos e vínculos** para definir
+textos que serão enviados ao chat quando um lado da barra ou um relógio completar.
+Cada trilha do painel possui seu próprio texto de conclusão. O evento só é disparado
+no momento em que a meta é alcançada; zerar e completar novamente dispara novo evento.
+
+O campo **Avanço rápido** controla os botões +N (1 a 10). Os botões +1, -1 e cliques
+nos segmentos continuam funcionando. Você pode opcionalmente vincular outro marcador:
+- **Exibir**: revela o marcador vinculado.
+- **Avançar**: adiciona N casas ao relógio, ao lado de ameaça da barra ou à primeira
+  trilha ainda incompleta do painel vinculado.
+
+**Segurança:** ações vinculadas nunca encadeiam automaticamente outros vínculos;
+o sistema só executa um salto por conclusão. O texto da consequência pode ser
+público ou visível somente aos mestres. Não existem alterações automáticas de
+atores, itens, fichas, cena ou sistema de regras.
+
+**Compatibilidade:** suporte declarado Foundry 13–14.369, testes de execução
+no Foundry ainda necessários. Faça backup do mundo antes de atualizar.

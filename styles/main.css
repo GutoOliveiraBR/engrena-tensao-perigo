@@ -245,3 +245,9 @@
 .engrena-tensao-perigo .etp-resize-handle:hover {opacity:1;filter:brightness(1.25);}
 .engrena-tensao-perigo .etp-card {padding-bottom:15px;}
 @media (pointer:coarse){.engrena-tensao-perigo .etp-resize-handle{width:34px;height:34px;}}
+
+/* v0.9.0 — configurações narrativas e avanço rápido */
+.etp-config-dialog .etp-form-row textarea{width:50%;min-height:48px;resize:vertical;box-sizing:border-box;}
+.etp-action-buttons{flex-wrap:wrap;}
+.etp-actions button[data-multiple="true"],.etp-progress-buttons button[data-multiple="true"]{border:1px solid rgba(170,205,230,.55);}
+@media(max-width:540px){.etp-config-dialog .etp-form-row textarea{width:100%;}}

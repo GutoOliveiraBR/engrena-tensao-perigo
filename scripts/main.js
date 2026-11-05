@@ -6,7 +6,7 @@ const DEFAULT_TRACKS = Object.freeze([
  {id:'infernal',label:'Influência infernal',description:'Quanto maior, mais poder político os diabos possuem',count:6,filled:2,color:'#b64f50'}
 ]);
 const MAX_TRACKS=12;
-const DEFAULT = Object.freeze({tracks: DEFAULT_TRACKS, visible:false, mode:'bar', title:'Tensão',leftLabel:'Ameaça',rightLabel:'Heróis',leftCount:5,rightCount:5,leftFilled:0,rightFilled:0,leftColor:'#d85c55',rightColor:'#47a7d1',centerWinner:null,clockCount:6,clockFilled:0,clockColor:'#dc8a46',heroIcon:'shield',leftIcon:'skull',rightIcon:'shield',clockIcon:'skull'});
+const DEFAULT = Object.freeze({tracks: DEFAULT_TRACKS, visible:false, mode:'bar', title:'Tensão',leftLabel:'Ameaça',rightLabel:'Heróis',leftCount:5,rightCount:5,leftFilled:0,rightFilled:0,leftColor:'#d85c55',rightColor:'#47a7d1',centerWinner:null,clockCount:6,clockFilled:0,clockColor:'#dc8a46',heroIcon:'shield',leftIcon:'skull',rightIcon:'shield',clockIcon:'skull',stepSize:1,completionLeft:'',completionRight:'',completionClock:'',completionVisibility:'public',linkedMarkerId:'',linkedAction:'none',linkedAmount:1});
 const docks = new Map();
 let managerOpen = false;
 const MAX_MARKERS=30;
@@ -120,8 +120,9 @@ a.tracks=rawTracks.slice(0,MAX_TRACKS).map((t,i)=>({
  description:String(t?.description||'').slice(0,220),
  count:clamp(Math.round(t?.count||6),1,30),
  filled:clamp(Math.round(t?.filled||0),0,clamp(Math.round(t?.count||6),1,30)),
- color:safeColor(t?.color,'#668f85')
-}));a.title=String(a.title||DEFAULT.title).slice(0,80);a.leftLabel=String(a.leftLabel||DEFAULT.leftLabel).slice(0,40);a.rightLabel=String(a.rightLabel||DEFAULT.rightLabel).slice(0,40);a.heroIcon=a.heroIcon==='bolt'?'bolt':'shield';for(const [key,fallback] of [['leftIcon','skull'],['rightIcon','shield'],['clockIcon','skull']]) { if (s[key] === undefined && key==='rightIcon' && s.heroIcon) a[key]=s.heroIcon==='bolt'?'bolt':'shield'; a[key]=ICON_KEYS.has(a[key])?a[key]:fallback; }a.visible=Boolean(a.visible);a.centerWinner=['left','right'].includes(a.centerWinner)?a.centerWinner:null;return a;}
+ color:safeColor(t?.color,'#668f85'),
+ completion:String(t?.completion||'').slice(0,600)
+}));a.title=String(a.title||DEFAULT.title).slice(0,80);a.leftLabel=String(a.leftLabel||DEFAULT.leftLabel).slice(0,40);a.rightLabel=String(a.rightLabel||DEFAULT.rightLabel).slice(0,40);a.heroIcon=a.heroIcon==='bolt'?'bolt':'shield';for(const [key,fallback] of [['leftIcon','skull'],['rightIcon','shield'],['clockIcon','skull']]) { if (s[key] === undefined && key==='rightIcon' && s.heroIcon) a[key]=s.heroIcon==='bolt'?'bolt':'shield'; a[key]=ICON_KEYS.has(a[key])?a[key]:fallback; }a.stepSize=clamp(Math.round(a.stepSize),1,10);a.linkedAmount=clamp(Math.round(a.linkedAmount),1,10);a.linkedAction=['none','reveal','advance'].includes(a.linkedAction)?a.linkedAction:'none';a.linkedMarkerId=String(a.linkedMarkerId||'').slice(0,70);a.completionVisibility=a.completionVisibility==='gm'?'gm':'public';for(const k of ['completionLeft','completionRight','completionClock'])a[k]=String(a[k]||'').slice(0,600);a.visible=Boolean(a.visible);a.centerWinner=['left','right'].includes(a.centerWinner)?a.centerWinner:null;return a;}
 const makeId=()=>foundry.utils.randomID(12);
 function getCollection(){
  const data=game.settings.get(ID,'markers');
@@ -133,22 +134,75 @@ async function saveCollection(markers){
  await game.settings.set(ID,'markers',markers.slice(0,MAX_MARKERS));
  game.socket?.emit(`module.${ID}`,{type:'refresh'});
 }
+// O ciclo de atualização preserva a configuração e dispara eventos apenas ao CRUZAR a meta.
+function completionEvents(before,after){
+ const events=[];
+ if(after.mode==='clock' && before.clockFilled<before.clockCount && after.clockFilled===after.clockCount)
+  events.push({kind:'clock',label:after.title,text:after.completionClock});
+ if(after.mode==='bar'){
+  const winner=after.centerWinner;
+  if(winner && winner!==before.centerWinner)
+   events.push({kind:winner,label:winner==='left'?after.leftLabel:after.rightLabel,text:winner==='left'?after.completionLeft:after.completionRight});
+ }
+ if(after.mode==='panel')for(const track of after.tracks){
+  const old=before.tracks.find(t=>t.id===track.id);
+  if(track.filled===track.count && (!old || old.filled<old.count))events.push({kind:'track',label:track.label,text:track.completion});
+ }
+ return events;
+}
+function addAmount(marker,amount){
+ const s=normalized(marker),n=clamp(Math.round(amount),1,10);
+ if(s.mode==='clock')return {...s,clockFilled:clamp(s.clockFilled+n,0,s.clockCount)};
+ if(s.mode==='bar')return {...s,leftFilled:clamp(s.leftFilled+n,0,s.leftCount)};
+ // Em painéis, o vínculo avança a primeira trilha ainda incompleta.
+ const tracks=s.tracks.map(t=>({...t}));const next=tracks.find(t=>t.filled<t.count);
+ if(next)next.filled=clamp(next.filled+n,0,next.count);
+ return {...s,tracks};
+}
+function resolveWinner(previous,next){
+ if(next.mode!=='bar'){next.centerWinner=null;return;}
+ const oldWinner=previous.mode==='bar'?previous.centerWinner:null;
+ if(oldWinner && next[`${oldWinner}Filled`]===next[`${oldWinner}Count`]){next.centerWinner=oldWinner;return;}
+ const leftNewlyFull=next.leftFilled===next.leftCount && (previous.leftFilled<previous.leftCount || previous.mode!=='bar');
+ const rightNewlyFull=next.rightFilled===next.rightCount && (previous.rightFilled<previous.rightCount || previous.mode!=='bar');
+ next.centerWinner=leftNewlyFull?'left':rightNewlyFull?'right':null;
+}
+async function announceCompletion(marker,event){
+ if(!String(event.text||'').trim())return;
+ const escaped=foundry.utils.escapeHTML;
+ const title=escaped(String(marker.title));
+ const label=escaped(String(event.label));
+ const body=escaped(String(event.text||'' )).replace(/\n/g,'<br>');
+ const content=`<div class="etp-event-message"><strong>Engrena — ${title}</strong><p>Concluído: ${label}</p>${body?`<p>${body}</p>`:''}</div>`;
+ const whisper=marker.completionVisibility==='gm'?game.users.filter(u=>u.isGM).map(u=>u.id):[];
+ try{await ChatMessage.create({content,speaker:{alias:'Engrena — Tensão & Perigo'},...(whisper.length?{whisper}:{})});}
+ catch(error){console.error('Engrena: falha ao publicar conclusão',error);ui.notifications?.warn('O marcador concluiu, mas a mensagem de evento não pôde ser enviada.');}
+}
 async function change(patch,markerId){
  if(!game.user.isGM)return;
  const all=getCollection(),idx=all.findIndex(t=>t.id===markerId);
  if(idx<0)return;
  const previous=all[idx],next={id:markerId,...normalized({...previous,...patch})};
- if(next.mode==='bar'){
-   const oldWinner=previous.mode==='bar'?previous.centerWinner:null;
-   const winnerStillFull=oldWinner && next[`${oldWinner}Filled`]===next[`${oldWinner}Count`];
-   if(winnerStillFull)next.centerWinner=oldWinner;
-   else {
-     const leftNewlyFull=next.leftFilled===next.leftCount && (previous.leftFilled<previous.leftCount || previous.mode!=='bar');
-     const rightNewlyFull=next.rightFilled===next.rightCount && (previous.rightFilled<previous.rightCount || previous.mode!=='bar');
-     next.centerWinner=leftNewlyFull?'left':rightNewlyFull?'right':null;
-   }
- }else next.centerWinner=null;
- all[idx]=next;await saveCollection(all);
+ resolveWinner(previous,next);
+ const events=completionEvents(previous,next);
+ all[idx]=next;
+ // Gatilho de um único salto: não executa cadeias recursivas nem loops entre marcadores.
+ // Ação vinculada ocorre uma vez por operação que conclui uma meta.
+ let targetEvent=null;
+ if(events.length && next.linkedAction!=='none' && next.linkedMarkerId!==markerId){
+  const ti=all.findIndex(t=>t.id===next.linkedMarkerId);
+  if(ti>=0){
+   const original=all[ti];
+   const target=next.linkedAction==='reveal'?{...original,visible:true}:addAmount(original,next.linkedAmount);
+   resolveWinner(original,target);
+   all[ti]=normalized(target);
+   // Não dispara um segundo vínculo, mas anuncia quando uma meta vinculada conclui.
+   targetEvent={marker:all[ti],events:completionEvents(original,all[ti])};
+  }
+ }
+ await saveCollection(all);
+ for(const event of events)await announceCompletion(next,event);
+ if(targetEvent)for(const event of targetEvent.events)await announceCompletion(targetEvent.marker,event);
 }
 async function createMarker(mode='clock',duplicateId=null){
  if(!game.user.isGM)return;
@@ -175,15 +229,15 @@ class TrackerDock extends API.HandlebarsApplicationMixin(API.ApplicationV2){
  static DEFAULT_OPTIONS={id:'engrena-tensao-perigo-dock',tag:'section',classes:['engrena-tensao-perigo'],window:{frame:false,positioned:false},position:{width:440,height:'auto'}};
  static PARTS={main:{template:`modules/${ID}/templates/dock.hbs`}};
  constructor(markerId){super({id:`engrena-tensao-perigo-${markerId}`});this.markerId=markerId;}
- async _prepareContext(){const s=getState(this.markerId);const isGM=game.user.isGM;return {...s,isGM,expanded:s.visible,isPanel:s.mode==='panel',counter:s.mode==='panel'?`${s.tracks.length} trilhas`:s.mode==='clock'?`${s.clockFilled}/${s.clockCount}`:`${s.leftFilled}/${s.leftCount} · ${s.rightFilled}/${s.rightCount}`,isBar:s.mode==='bar',panelTracks:s.tracks.map((t,index)=>({...t,index,value:`${t.filled}/${t.count}`,segments:Array.from({length:t.count},(_,i)=>({index:i,number:i+1,filled:i<t.filled}))})),leftValue:`${s.leftFilled}/${s.leftCount}`,rightValue:`${s.rightFilled}/${s.rightCount}`,clockValue:s.clockFilled,clockComplete:s.clockFilled===s.clockCount,centerColor:s.centerWinner==='left'?s.leftColor:s.centerWinner==='right'?s.rightColor:null,centerIcon:s.centerWinner==='left'?iconGlyph(s.leftIcon):s.centerWinner==='right'?iconGlyph(s.rightIcon):null,clockCenterIcon:s.clockFilled===s.clockCount?iconGlyph(s.clockIcon):null,leftSegments:Array.from({length:s.leftCount},(_,i)=>({index:i,number:i+1,filled:i<s.leftFilled})),rightSegments:Array.from({length:s.rightCount},(_,i)=>({index:i,number:i+1,filled:i<s.rightFilled})).reverse(),clockSegments:wedges(s.clockCount,s.clockFilled)};}
+ async _prepareContext(){const s=getState(this.markerId);const isGM=game.user.isGM;return {...s,isGM,expanded:s.visible,isPanel:s.mode==='panel',counter:s.mode==='panel'?`${s.tracks.length} trilhas`:s.mode==='clock'?`${s.clockFilled}/${s.clockCount}`:`${s.leftFilled}/${s.leftCount} · ${s.rightFilled}/${s.rightCount}`,isBar:s.mode==='bar',panelTracks:s.tracks.map((t,index)=>({...t,index,value:`${t.filled}/${t.count}`,segments:Array.from({length:t.count},(_,i)=>({index:i,number:i+1,filled:i<t.filled}))})),leftValue:`${s.leftFilled}/${s.leftCount}`,rightValue:`${s.rightFilled}/${s.rightCount}`,clockValue:s.clockFilled,clockComplete:s.clockFilled===s.clockCount,centerColor:s.centerWinner==='left'?s.leftColor:s.centerWinner==='right'?s.rightColor:null,centerIcon:s.centerWinner==='left'?iconGlyph(s.leftIcon):s.centerWinner==='right'?iconGlyph(s.rightIcon):null,clockCenterIcon:s.clockFilled===s.clockCount?iconGlyph(s.clockIcon):null,leftSegments:Array.from({length:s.leftCount},(_,i)=>({index:i,number:i+1,filled:i<s.leftFilled})),rightSegments:Array.from({length:s.rightCount},(_,i)=>({index:i,number:i+1,filled:i<s.rightFilled})).reverse(),clockSegments:wedges(s.clockCount,s.clockFilled),stepSize:s.stepSize};}
  _onRender(context,options){super._onRender(context,options);applyWidth(this.markerId);restorePosition(this.markerId);applySavedHeight(this.markerId);attachDrag(this.markerId);attachResize(this.markerId);this.element.querySelectorAll('[data-etp]').forEach(el=>{el.addEventListener('click',async ev=>{const changeHere=patch=>change(patch,this.markerId);const cmd=el.dataset.etp;if(!game.user.isGM)return;const s=getState(this.markerId);if(cmd==='configure')return configure(this.markerId);if(cmd==='switch')return changeHere({mode:s.mode==='bar'?'clock':s.mode==='clock'?'panel':'bar'});if(cmd==='toggle')return changeHere({visible:!s.visible});if(cmd==='left'||cmd==='right'||cmd==='clock'){const key=cmd==='clock'?'clockFilled':cmd==='left'?'leftFilled':'rightFilled';const index=Number(el.dataset.index);return changeHere({[key]:s[key]===index+1?index:index+1});}if(cmd==='track-step'||cmd==='track-cell'){
  const ti=Number(el.dataset.track);if(!Number.isInteger(ti)||ti<0||ti>=s.tracks.length)return;
  const tracks=s.tracks.map(t=>({...t}));const t=tracks[ti];
- if(cmd==='track-step')t.filled=clamp(t.filled+Number(el.dataset.delta),0,t.count);
+ if(cmd==='track-step')t.filled=clamp(t.filled+Number(el.dataset.delta)*(el.dataset.multiple==='true'?s.stepSize:1),0,t.count);
  else {const index=Number(el.dataset.index);if(!Number.isInteger(index)||index<0||index>=t.count)return;t.filled=t.filled===index+1?index:index+1;}
  return changeHere({tracks});
  }
- if(cmd==='reset')return changeHere(s.mode==='bar'?{leftFilled:0,rightFilled:0,centerWinner:null}:s.mode==='clock'?{clockFilled:0}:{tracks:s.tracks.map(t=>({...t,filled:0}))});if(cmd==='increase'||cmd==='decrease'||cmd==='left-increase'||cmd==='left-decrease'||cmd==='right-increase'||cmd==='right-decrease'){const direction=cmd.endsWith('increase')?1:-1;if(s.mode==='clock')return changeHere({clockFilled:s.clockFilled+direction});const side=cmd.startsWith('right-')?'right':'left';const key=`${side}Filled`;return changeHere({[key]:s[key]+direction});}});});}
+ if(cmd==='reset')return changeHere(s.mode==='bar'?{leftFilled:0,rightFilled:0,centerWinner:null}:s.mode==='clock'?{clockFilled:0}:{tracks:s.tracks.map(t=>({...t,filled:0}))});if(cmd==='increase'||cmd==='decrease'||cmd==='left-increase'||cmd==='left-decrease'||cmd==='right-increase'||cmd==='right-decrease'){const direction=(cmd.endsWith('increase')?1:-1)*(el.dataset.multiple==='true'?s.stepSize:1);if(s.mode==='clock')return changeHere({clockFilled:s.clockFilled+direction});const side=cmd.startsWith('right-')?'right':'left';const key=`${side}Filled`;return changeHere({[key]:s[key]+direction});}});});}
 }
 function trackFields(s){
  const rows=s.tracks.map(t=>({...t}));
@@ -199,6 +253,7 @@ function trackRow(t){
   ${field('Descrição',`<input class="etp-track-description" maxlength="220" value="${esc(t.description)}">`)}
   ${field('Meta de segmentos',`<input class="etp-track-count" type="number" min="1" max="30" value="${t.count}">`)}
   ${field('Cor',`<input class="etp-track-color" type="color" value="${t.color}">`)}
+  ${field('Consequência ao concluir',`<textarea class="etp-track-completion" maxlength="600" rows="2">${esc(t.completion||'')}</textarea>`)}
  </div>`;
 }
 function field(label,input){return `<label class="etp-form-row"><span>${label}</span>${input}</label>`;}
@@ -221,6 +276,17 @@ ${iconPicker('leftIcon',s.leftIcon,'Ícone do lado esquerdo')}${iconPicker('righ
 <fieldset><legend>Relógio de perigo</legend>
 ${field('Segmentos',`<input name="clockCount" type="number" min="1" max="20" value="${s.clockCount}">`)}
 ${field('Cor do relógio',`<input name="clockColor" type="color" value="${s.clockColor}">`)}${iconPicker('clockIcon',s.clockIcon,'Ícone ao concluir o relógio')}</fieldset>
+<fieldset><legend>Eventos narrativos e vínculos (opcionais)</legend>
+<p class="etp-help">Os eventos são disparados quando uma meta é atingida, não a cada atualização. O vínculo executa apenas um salto por conclusão.</p>
+${field('Avanço rápido (casas)',`<input name="stepSize" type="number" min="1" max="10" value="${s.stepSize}">`)}
+${field('Conclusão da ameaça',`<textarea name="completionLeft" maxlength="600" rows="2">${foundry.utils.escapeHTML(s.completionLeft)}</textarea>`)}
+${field('Conclusão dos heróis',`<textarea name="completionRight" maxlength="600" rows="2">${foundry.utils.escapeHTML(s.completionRight)}</textarea>`)}
+${field('Conclusão do relógio',`<textarea name="completionClock" maxlength="600" rows="2">${foundry.utils.escapeHTML(s.completionClock)}</textarea>`)}
+${field('Mensagem de conclusão',`<select name="completionVisibility"><option value="public" ${s.completionVisibility==='public'?'selected':''}>Para todos (chat)</option><option value="gm" ${s.completionVisibility==='gm'?'selected':''}>Somente mestres (chat)</option></select>`)}
+${field('Marcador vinculado',`<select name="linkedMarkerId"><option value="">Nenhum</option>${getCollection().filter(t=>t.id!==markerId).map(t=>`<option value="${foundry.utils.escapeHTML(t.id)}" ${s.linkedMarkerId===t.id?'selected':''}>${foundry.utils.escapeHTML(t.title)}</option>`).join('')}</select>`)}
+${field('Quando concluir',`<select name="linkedAction"><option value="none" ${s.linkedAction==='none'?'selected':''}>Não alterar outro marcador</option><option value="reveal" ${s.linkedAction==='reveal'?'selected':''}>Exibir marcador vinculado</option><option value="advance" ${s.linkedAction==='advance'?'selected':''}>Avançar marcador vinculado</option></select>`)}
+${field('Casas a avançar no vínculo',`<input name="linkedAmount" type="number" min="1" max="10" value="${s.linkedAmount}">`)}
+</fieldset>
 ${trackFields(s)}
 <label class="etp-show"><input type="checkbox" name="visible" ${s.visible?'checked':''}> Exibir para todos os jogadores</label>
 </div></div>`;
@@ -234,9 +300,9 @@ for(const control of root.querySelectorAll('input[name], select[name], textarea[
 }const tracks=[...root.querySelectorAll('.etp-track-editor-row')].map((row,i)=>{
  const old=s.tracks.find(t=>t.id===row.dataset.trackId);
  const count=clamp(Math.round(row.querySelector('.etp-track-count')?.value||6),1,30);
- return {id:row.dataset.trackId||`track-${Date.now()}-${i}`,label:row.querySelector('.etp-track-label')?.value||`Trilha ${i+1}`,description:row.querySelector('.etp-track-description')?.value||'',color:row.querySelector('.etp-track-color')?.value||'#668f85',count,filled:Math.min(old?.filled||0,count)};
+ return {id:row.dataset.trackId||`track-${Date.now()}-${i}`,label:row.querySelector('.etp-track-label')?.value||`Trilha ${i+1}`,description:row.querySelector('.etp-track-description')?.value||'',color:row.querySelector('.etp-track-color')?.value||'#668f85',completion:row.querySelector('.etp-track-completion')?.value||'',count,filled:Math.min(old?.filled||0,count)};
  });
- await change({tracks,title:fd.get('title'),mode:fd.get('mode'),leftLabel:fd.get('leftLabel'),leftCount:fd.get('leftCount'),leftColor:fd.get('leftColor'),rightLabel:fd.get('rightLabel'),rightCount:fd.get('rightCount'),rightColor:fd.get('rightColor'),leftIcon:fd.get('leftIcon'),rightIcon:fd.get('rightIcon'),clockIcon:fd.get('clockIcon'),clockCount:fd.get('clockCount'),clockColor:fd.get('clockColor'),visible:fd.has('visible')},markerId);return true;}}]});
+ await change({tracks,title:fd.get('title'),mode:fd.get('mode'),stepSize:fd.get('stepSize'),completionLeft:fd.get('completionLeft'),completionRight:fd.get('completionRight'),completionClock:fd.get('completionClock'),completionVisibility:fd.get('completionVisibility'),linkedMarkerId:fd.get('linkedMarkerId'),linkedAction:fd.get('linkedAction'),linkedAmount:fd.get('linkedAmount'),leftLabel:fd.get('leftLabel'),leftCount:fd.get('leftCount'),leftColor:fd.get('leftColor'),rightLabel:fd.get('rightLabel'),rightCount:fd.get('rightCount'),rightColor:fd.get('rightColor'),leftIcon:fd.get('leftIcon'),rightIcon:fd.get('rightIcon'),clockIcon:fd.get('clockIcon'),clockCount:fd.get('clockCount'),clockColor:fd.get('clockColor'),visible:fd.has('visible')},markerId);return true;}}]});
  await dialogPromise;
 }
 Hooks.on('getSceneControlButtons',controls=>{
@@ -294,7 +360,7 @@ function onConfigTrackClick(e){
  if(!root)return;
  if(root.children.length>=MAX_TRACKS){ui.notifications.warn(`Máximo de ${MAX_TRACKS} trilhas.`);return;}
  const id=`track-${Date.now()}-${Math.floor(Math.random()*100000)}`;
- root.insertAdjacentHTML('beforeend',trackRow({id,label:`Trilha ${root.children.length+1}`,description:'',count:6,filled:0,color:'#668f85'}));
+ root.insertAdjacentHTML('beforeend',trackRow({id,label:`Trilha ${root.children.length+1}`,description:'',count:6,filled:0,color:'#668f85',completion:''}));
  root.lastElementChild?.scrollIntoView({block:'nearest'});
 }
 Hooks.once('ready',async()=>{
