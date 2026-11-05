@@ -1,10 +1,10 @@
-# Engrena — Tensão & Perigo v0.9.0
+# Engrena — Tensão & Perigo v0.9.1
 
 Compatibilidade declarada: Foundry VTT 13.x a 14.369. Sistema de RPG: agnóstico.
 
 **Suporte v13 experimental:** as APIs utilizadas (ApplicationV2, DialogV2, getSceneControlButtons) estão documentadas na v13, mas esta atualização ainda não foi executada em uma instância real de Foundry v13. O campo `verified` permanece em 14.369 porque essa é a versão de referência conhecida; ele não comprova testes em v13.
 
-**Releases GitHub:** o manifesto aponta para `main` e o download desta versão aponta para a release `v0.9.0`. Atualize e publique o `module.json` no GitHub antes de oferecer a atualização aos usuários. Para o atualizador nativo, as URLs precisam estar acessíveis ao Foundry sem autenticação.
+**Releases GitHub:** o manifesto aponta para `main` e o download desta versão aponta para a release `v0.9.1`. Atualize e publique o `module.json` no GitHub antes de oferecer a atualização aos usuários. Para o atualizador nativo, as URLs precisam estar acessíveis ao Foundry sem autenticação.
 
 ## Nova biblioteca de marcadores
 
@@ -62,3 +62,22 @@ atores, itens, fichas, cena ou sistema de regras.
 
 **Compatibilidade:** suporte declarado Foundry 13–14.369, testes de execução
 no Foundry ainda necessários. Faça backup do mundo antes de atualizar.
+
+## v0.9.1 — Destinos explícitos de vínculos
+
+Ao configurar uma ação **Avançar marcador vinculado**, selecione qual contador
+deve receber o progresso: lado esquerdo/direito da barra, relógio ou uma trilha
+específica do painel. O seletor muda conforme o tipo do marcador de destino.
+É possível escolher quantos espaços serão adicionados (1 a 10).
+
+**Migração:** vínculos da v0.9.0 sem destino configurado usam a opção
+“Automático (compatibilidade 0.9.0)”: relógio, lado esquerdo, ou primeira
+trilha incompleta. Escolha explicitamente o destino para comportamento previsível.
+
+Quando uma trilha previamente vinculada é excluída, o vínculo com destino
+inválido não redireciona silenciosamente o progresso para outra trilha;
+reconfigure o destino. Continua proibido o encadeamento recursivo de vínculos.
+
+**Teste necessário no Foundry:** confirmar exibição dinâmica do seletor, salvamento,
+revelação, avanço de ambos os lados, trilhas, persistência após reiniciar,
+permissões GM/jogadores e execução de eventos uma única vez por conclusão.

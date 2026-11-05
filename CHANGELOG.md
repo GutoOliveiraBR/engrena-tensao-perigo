@@ -1,3 +1,11 @@
+## 0.9.1 — Destino configurável de vínculos
+
+- Seleção do contador exato de destino: ameaça, heróis, relógio ou trilha individual.
+- Opções dinâmicas de acordo com o marcador vinculado.
+- Compatibilidade dos vínculos existentes da v0.9.0.
+- Vínculos a trilhas removidas deixam de redirecionar para outras trilhas.
+- Mantidos gatilhos de conclusão, mensagens narrativas e proteção de um salto.
+
 ## 0.9.0 — Eventos narrativos e vínculos
 
 - Consequências de conclusão configuráveis para cada lado da barra, relógios e trilhas.

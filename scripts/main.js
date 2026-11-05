@@ -6,7 +6,7 @@ const DEFAULT_TRACKS = Object.freeze([
  {id:'infernal',label:'Influência infernal',description:'Quanto maior, mais poder político os diabos possuem',count:6,filled:2,color:'#b64f50'}
 ]);
 const MAX_TRACKS=12;
-const DEFAULT = Object.freeze({tracks: DEFAULT_TRACKS, visible:false, mode:'bar', title:'Tensão',leftLabel:'Ameaça',rightLabel:'Heróis',leftCount:5,rightCount:5,leftFilled:0,rightFilled:0,leftColor:'#d85c55',rightColor:'#47a7d1',centerWinner:null,clockCount:6,clockFilled:0,clockColor:'#dc8a46',heroIcon:'shield',leftIcon:'skull',rightIcon:'shield',clockIcon:'skull',stepSize:1,completionLeft:'',completionRight:'',completionClock:'',completionVisibility:'public',linkedMarkerId:'',linkedAction:'none',linkedAmount:1});
+const DEFAULT = Object.freeze({tracks: DEFAULT_TRACKS, visible:false, mode:'bar', title:'Tensão',leftLabel:'Ameaça',rightLabel:'Heróis',leftCount:5,rightCount:5,leftFilled:0,rightFilled:0,leftColor:'#d85c55',rightColor:'#47a7d1',centerWinner:null,clockCount:6,clockFilled:0,clockColor:'#dc8a46',heroIcon:'shield',leftIcon:'skull',rightIcon:'shield',clockIcon:'skull',stepSize:1,completionLeft:'',completionRight:'',completionClock:'',completionVisibility:'public',linkedMarkerId:'',linkedAction:'none',linkedAmount:1,linkedTarget:''});
 const docks = new Map();
 let managerOpen = false;
 const MAX_MARKERS=30;
@@ -122,7 +122,7 @@ a.tracks=rawTracks.slice(0,MAX_TRACKS).map((t,i)=>({
  filled:clamp(Math.round(t?.filled||0),0,clamp(Math.round(t?.count||6),1,30)),
  color:safeColor(t?.color,'#668f85'),
  completion:String(t?.completion||'').slice(0,600)
-}));a.title=String(a.title||DEFAULT.title).slice(0,80);a.leftLabel=String(a.leftLabel||DEFAULT.leftLabel).slice(0,40);a.rightLabel=String(a.rightLabel||DEFAULT.rightLabel).slice(0,40);a.heroIcon=a.heroIcon==='bolt'?'bolt':'shield';for(const [key,fallback] of [['leftIcon','skull'],['rightIcon','shield'],['clockIcon','skull']]) { if (s[key] === undefined && key==='rightIcon' && s.heroIcon) a[key]=s.heroIcon==='bolt'?'bolt':'shield'; a[key]=ICON_KEYS.has(a[key])?a[key]:fallback; }a.stepSize=clamp(Math.round(a.stepSize),1,10);a.linkedAmount=clamp(Math.round(a.linkedAmount),1,10);a.linkedAction=['none','reveal','advance'].includes(a.linkedAction)?a.linkedAction:'none';a.linkedMarkerId=String(a.linkedMarkerId||'').slice(0,70);a.completionVisibility=a.completionVisibility==='gm'?'gm':'public';for(const k of ['completionLeft','completionRight','completionClock'])a[k]=String(a[k]||'').slice(0,600);a.visible=Boolean(a.visible);a.centerWinner=['left','right'].includes(a.centerWinner)?a.centerWinner:null;return a;}
+}));a.title=String(a.title||DEFAULT.title).slice(0,80);a.leftLabel=String(a.leftLabel||DEFAULT.leftLabel).slice(0,40);a.rightLabel=String(a.rightLabel||DEFAULT.rightLabel).slice(0,40);a.heroIcon=a.heroIcon==='bolt'?'bolt':'shield';for(const [key,fallback] of [['leftIcon','skull'],['rightIcon','shield'],['clockIcon','skull']]) { if (s[key] === undefined && key==='rightIcon' && s.heroIcon) a[key]=s.heroIcon==='bolt'?'bolt':'shield'; a[key]=ICON_KEYS.has(a[key])?a[key]:fallback; }a.stepSize=clamp(Math.round(a.stepSize),1,10);a.linkedAmount=clamp(Math.round(a.linkedAmount),1,10);a.linkedAction=['none','reveal','advance'].includes(a.linkedAction)?a.linkedAction:'none';a.linkedMarkerId=String(a.linkedMarkerId||'').slice(0,70);a.linkedTarget=String(a.linkedTarget||'').slice(0,90);a.completionVisibility=a.completionVisibility==='gm'?'gm':'public';for(const k of ['completionLeft','completionRight','completionClock'])a[k]=String(a[k]||'').slice(0,600);a.visible=Boolean(a.visible);a.centerWinner=['left','right'].includes(a.centerWinner)?a.centerWinner:null;return a;}
 const makeId=()=>foundry.utils.randomID(12);
 function getCollection(){
  const data=game.settings.get(ID,'markers');
@@ -150,12 +150,30 @@ function completionEvents(before,after){
  }
  return events;
 }
-function addAmount(marker,amount){
+// Seleciona explicitamente o contador de destino. Para dados legados sem `linkedTarget`,
+// preserva o comportamento da v0.9.0 (lado esquerdo / primeira trilha incompleta).
+function linkTargets(marker){
+ const s=normalized(marker);
+ if(s.mode==='clock')return [{value:'clock',label:`Relógio — ${s.title}`}];
+ if(s.mode==='bar')return [
+  {value:'left',label:`Lado esquerdo — ${s.leftLabel}`},
+  {value:'right',label:`Lado direito — ${s.rightLabel}`}
+ ];
+ return s.tracks.map(t=>({value:`track:${t.id}`,label:`Trilha — ${t.label}`}));
+}
+function addAmount(marker,amount,targetKey=''){
  const s=normalized(marker),n=clamp(Math.round(amount),1,10);
  if(s.mode==='clock')return {...s,clockFilled:clamp(s.clockFilled+n,0,s.clockCount)};
- if(s.mode==='bar')return {...s,leftFilled:clamp(s.leftFilled+n,0,s.leftCount)};
- // Em painéis, o vínculo avança a primeira trilha ainda incompleta.
- const tracks=s.tracks.map(t=>({...t}));const next=tracks.find(t=>t.filled<t.count);
+ if(s.mode==='bar'){
+  const side=targetKey==='right'?'right':'left';
+  const key=`${side}Filled`,limit=`${side}Count`;
+  return {...s,[key]:clamp(s[key]+n,0,s[limit])};
+ }
+ const tracks=s.tracks.map(t=>({...t}));
+ // Um destino explicitamente escolhido não deve redirecionar para outra trilha.
+ // Se ela foi excluída, não altera o progresso até o mestre corrigir o vínculo.
+ const requested=targetKey.startsWith('track:')?targetKey.slice(6):'';
+ const next=requested?tracks.find(t=>t.id===requested):(targetKey?null:tracks.find(t=>t.filled<t.count));
  if(next)next.filled=clamp(next.filled+n,0,next.count);
  return {...s,tracks};
 }
@@ -193,7 +211,8 @@ async function change(patch,markerId){
   const ti=all.findIndex(t=>t.id===next.linkedMarkerId);
   if(ti>=0){
    const original=all[ti];
-   const target=next.linkedAction==='reveal'?{...original,visible:true}:addAmount(original,next.linkedAmount);
+   const validTarget=linkTargets(original).some(t=>t.value===next.linkedTarget);
+   const target=next.linkedAction==='reveal'?{...original,visible:true}:(!next.linkedTarget||validTarget?addAmount(original,next.linkedAmount,next.linkedTarget):original);
    resolveWinner(original,target);
    all[ti]=normalized(target);
    // Não dispara um segundo vínculo, mas anuncia quando uma meta vinculada conclui.
@@ -262,6 +281,21 @@ function iconPicker(fieldName,selected,title){
  return `<div class="etp-picker"><div class="etp-picker-title">${title}</div><div class="etp-icon-gallery" role="group" aria-label="${title}">${available.map(opt=>`<label class="etp-icon-option" title="${opt.label}"><input type="radio" name="${fieldName}" value="${opt.id}" ${selected===opt.id?'checked':''}><span class="etp-icon-choice"><span class="etp-option-glyph" aria-hidden="true">${opt.glyph}</span><span class="etp-option-name">${opt.label}</span></span></label>`).join('')}</div></div>`;
 }
 
+function linkTargetOptions(markerId,selected=''){
+ const marker=getCollection().find(m=>m.id===markerId);
+ if(!marker)return '<option value="">Selecione primeiro o marcador vinculado</option>';
+ const esc=x=>foundry.utils.escapeHTML(String(x??''));
+ const choices=linkTargets(marker);
+ const legacy='<option value="" '+(!selected?'selected':'')+'>Automático (compatibilidade 0.9.0)</option>';
+ return legacy+choices.map(t=>`<option value="${esc(t.value)}" ${selected===t.value?'selected':''}>${esc(t.label)}</option>`).join('');
+}
+function onLinkMarkerChanged(event){
+ const control=event.target;
+ if(!control?.matches?.('.etp-config-dialog select[name="linkedMarkerId"]'))return;
+ const form=control.closest('.etp-config-dialog');
+ const target=form?.querySelector('select[name="linkedTarget"]');
+ if(target)target.innerHTML=linkTargetOptions(control.value,'');
+}
 async function configure(markerId){if(!game.user.isGM)return;const s=getState(markerId);const content=`<div class="etp-main-scroll" role="region" aria-label="Todas as configurações de tensão e perigo" tabindex="0" style="height:min(55vh,520px);max-height:520px;min-height:240px;overflow-y:scroll;overflow-x:hidden;box-sizing:border-box;padding:8px 14px 14px 4px;scrollbar-gutter:stable"><div class="etp-config" id="etp-settings-fields">
 ${field('Título',`<input name="title" maxlength="80" value="${foundry.utils.escapeHTML(s.title)}">`)}
 ${field('Formato',`<select name="mode"><option value="bar" ${s.mode==='bar'?'selected':''}>Barra de tensão</option><option value="clock" ${s.mode==='clock'?'selected':''}>Relógio de perigo</option><option value="panel" ${s.mode==='panel'?'selected':''}>Painel de progresso</option></select>`)}
@@ -277,7 +311,7 @@ ${iconPicker('leftIcon',s.leftIcon,'Ícone do lado esquerdo')}${iconPicker('righ
 ${field('Segmentos',`<input name="clockCount" type="number" min="1" max="20" value="${s.clockCount}">`)}
 ${field('Cor do relógio',`<input name="clockColor" type="color" value="${s.clockColor}">`)}${iconPicker('clockIcon',s.clockIcon,'Ícone ao concluir o relógio')}</fieldset>
 <fieldset><legend>Eventos narrativos e vínculos (opcionais)</legend>
-<p class="etp-help">Os eventos são disparados quando uma meta é atingida, não a cada atualização. O vínculo executa apenas um salto por conclusão.</p>
+<p class="etp-help">Os eventos são disparados quando uma meta é atingida, não a cada atualização. O vínculo executa apenas um salto por conclusão. Escolha o destino exato ao avançar um marcador; a opção automática mantém a lógica antiga.</p>
 ${field('Avanço rápido (casas)',`<input name="stepSize" type="number" min="1" max="10" value="${s.stepSize}">`)}
 ${field('Conclusão da ameaça',`<textarea name="completionLeft" maxlength="600" rows="2">${foundry.utils.escapeHTML(s.completionLeft)}</textarea>`)}
 ${field('Conclusão dos heróis',`<textarea name="completionRight" maxlength="600" rows="2">${foundry.utils.escapeHTML(s.completionRight)}</textarea>`)}
@@ -285,6 +319,7 @@ ${field('Conclusão do relógio',`<textarea name="completionClock" maxlength="60
 ${field('Mensagem de conclusão',`<select name="completionVisibility"><option value="public" ${s.completionVisibility==='public'?'selected':''}>Para todos (chat)</option><option value="gm" ${s.completionVisibility==='gm'?'selected':''}>Somente mestres (chat)</option></select>`)}
 ${field('Marcador vinculado',`<select name="linkedMarkerId"><option value="">Nenhum</option>${getCollection().filter(t=>t.id!==markerId).map(t=>`<option value="${foundry.utils.escapeHTML(t.id)}" ${s.linkedMarkerId===t.id?'selected':''}>${foundry.utils.escapeHTML(t.title)}</option>`).join('')}</select>`)}
 ${field('Quando concluir',`<select name="linkedAction"><option value="none" ${s.linkedAction==='none'?'selected':''}>Não alterar outro marcador</option><option value="reveal" ${s.linkedAction==='reveal'?'selected':''}>Exibir marcador vinculado</option><option value="advance" ${s.linkedAction==='advance'?'selected':''}>Avançar marcador vinculado</option></select>`)}
+${field('Destino do avanço',`<select name="linkedTarget" id="etp-linked-target" aria-label="Contador de destino">${linkTargetOptions(s.linkedMarkerId,s.linkedTarget)}</select>`)}
 ${field('Casas a avançar no vínculo',`<input name="linkedAmount" type="number" min="1" max="10" value="${s.linkedAmount}">`)}
 </fieldset>
 ${trackFields(s)}
@@ -302,7 +337,7 @@ for(const control of root.querySelectorAll('input[name], select[name], textarea[
  const count=clamp(Math.round(row.querySelector('.etp-track-count')?.value||6),1,30);
  return {id:row.dataset.trackId||`track-${Date.now()}-${i}`,label:row.querySelector('.etp-track-label')?.value||`Trilha ${i+1}`,description:row.querySelector('.etp-track-description')?.value||'',color:row.querySelector('.etp-track-color')?.value||'#668f85',completion:row.querySelector('.etp-track-completion')?.value||'',count,filled:Math.min(old?.filled||0,count)};
  });
- await change({tracks,title:fd.get('title'),mode:fd.get('mode'),stepSize:fd.get('stepSize'),completionLeft:fd.get('completionLeft'),completionRight:fd.get('completionRight'),completionClock:fd.get('completionClock'),completionVisibility:fd.get('completionVisibility'),linkedMarkerId:fd.get('linkedMarkerId'),linkedAction:fd.get('linkedAction'),linkedAmount:fd.get('linkedAmount'),leftLabel:fd.get('leftLabel'),leftCount:fd.get('leftCount'),leftColor:fd.get('leftColor'),rightLabel:fd.get('rightLabel'),rightCount:fd.get('rightCount'),rightColor:fd.get('rightColor'),leftIcon:fd.get('leftIcon'),rightIcon:fd.get('rightIcon'),clockIcon:fd.get('clockIcon'),clockCount:fd.get('clockCount'),clockColor:fd.get('clockColor'),visible:fd.has('visible')},markerId);return true;}}]});
+ await change({tracks,title:fd.get('title'),mode:fd.get('mode'),stepSize:fd.get('stepSize'),completionLeft:fd.get('completionLeft'),completionRight:fd.get('completionRight'),completionClock:fd.get('completionClock'),completionVisibility:fd.get('completionVisibility'),linkedMarkerId:fd.get('linkedMarkerId'),linkedAction:fd.get('linkedAction'),linkedAmount:fd.get('linkedAmount'),linkedTarget:fd.get('linkedTarget'),leftLabel:fd.get('leftLabel'),leftCount:fd.get('leftCount'),leftColor:fd.get('leftColor'),rightLabel:fd.get('rightLabel'),rightCount:fd.get('rightCount'),rightColor:fd.get('rightColor'),leftIcon:fd.get('leftIcon'),rightIcon:fd.get('rightIcon'),clockIcon:fd.get('clockIcon'),clockCount:fd.get('clockCount'),clockColor:fd.get('clockColor'),visible:fd.has('visible')},markerId);return true;}}]});
  await dialogPromise;
 }
 Hooks.on('getSceneControlButtons',controls=>{
@@ -366,6 +401,7 @@ function onConfigTrackClick(e){
 Hooks.once('ready',async()=>{
  document.addEventListener('click',onConfigTrackClick);
  document.addEventListener('click',onManagerClick);
+ document.addEventListener('change',onLinkMarkerChanged);
  window.addEventListener('resize',()=>{for(const id of docks.keys()){applyWidth(id);restorePosition(id);applySavedHeight(id);}});
  if(game.user.isGM && getCollection().length===0){
   const legacy=normalized(game.settings.get(ID,'state'));
