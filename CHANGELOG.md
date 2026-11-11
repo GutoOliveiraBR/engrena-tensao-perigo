@@ -1,3 +1,10 @@
+## v0.9.2 — Descrições por casa
+
+- Notas opcionais individuais por casa para os dois lados da barra e cada segmento do relógio.
+- Dicas ao passar o mouse e indicação discreta da etapa atual.
+- Etapas futuras ocultas aos jogadores; sem efeito automático nas regras.
+- Preservação das configurações existentes e link do manifesto no README.
+
 ## 0.9.1 — Destino configurável de vínculos
 
 - Seleção do contador exato de destino: ameaça, heróis, relógio ou trilha individual.

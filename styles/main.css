@@ -251,3 +251,13 @@
 .etp-action-buttons{flex-wrap:wrap;}
 .etp-actions button[data-multiple="true"],.etp-progress-buttons button[data-multiple="true"]{border:1px solid rgba(170,205,230,.55);}
 @media(max-width:540px){.etp-config-dialog .etp-form-row textarea{width:100%;}}
+
+/* v0.9.2 — Descrições opcionais por casa; visual compacto no mapa. */
+.etp-current-step-note { margin: 4px 0 0; padding: 3px 6px; border-left: 2px solid rgba(170,195,225,.7); background:rgba(10,15,25,.27); color:#f2f4fa; font-size:11px; line-height:1.4; overflow-wrap:anywhere; max-height:3.2em; overflow-y:auto; }
+.etp-current-step-note strong {font-weight:700;}
+.etp-step-details {border:1px solid #7776; border-radius:7px; padding:7px; min-width:0;}
+.etp-step-details summary {cursor:pointer;font-weight:600;}
+.etp-step-fields {display:grid;gap:5px;margin-top:8px;}
+.etp-step-row {display:flex;align-items:center;gap:8px;min-width:0;}
+.etp-step-row span {flex:0 0 65px;font-size:12px;}
+.etp-step-row input {flex:1;min-width:0;box-sizing:border-box;}

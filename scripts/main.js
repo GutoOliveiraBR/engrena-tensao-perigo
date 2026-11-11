@@ -6,7 +6,7 @@ const DEFAULT_TRACKS = Object.freeze([
  {id:'infernal',label:'Influência infernal',description:'Quanto maior, mais poder político os diabos possuem',count:6,filled:2,color:'#b64f50'}
 ]);
 const MAX_TRACKS=12;
-const DEFAULT = Object.freeze({tracks: DEFAULT_TRACKS, visible:false, mode:'bar', title:'Tensão',leftLabel:'Ameaça',rightLabel:'Heróis',leftCount:5,rightCount:5,leftFilled:0,rightFilled:0,leftColor:'#d85c55',rightColor:'#47a7d1',centerWinner:null,clockCount:6,clockFilled:0,clockColor:'#dc8a46',heroIcon:'shield',leftIcon:'skull',rightIcon:'shield',clockIcon:'skull',stepSize:1,completionLeft:'',completionRight:'',completionClock:'',completionVisibility:'public',linkedMarkerId:'',linkedAction:'none',linkedAmount:1,linkedTarget:''});
+const DEFAULT = Object.freeze({tracks: DEFAULT_TRACKS, visible:false, mode:'bar', title:'Tensão',leftLabel:'Ameaça',rightLabel:'Heróis',leftCount:5,rightCount:5,leftFilled:0,rightFilled:0,leftColor:'#d85c55',rightColor:'#47a7d1',centerWinner:null,clockCount:6,clockFilled:0,clockColor:'#dc8a46',heroIcon:'shield',leftIcon:'skull',rightIcon:'shield',clockIcon:'skull',stepSize:1,completionLeft:'',completionRight:'',completionClock:'',completionVisibility:'public',linkedMarkerId:'',linkedAction:'none',linkedAmount:1,linkedTarget:'',leftStepNotes:[],rightStepNotes:[],clockStepNotes:[]});
 const docks = new Map();
 let managerOpen = false;
 const MAX_MARKERS=30;
@@ -112,7 +112,12 @@ const ICON_KEYS = new Set(['none', ...Object.keys(ICONS)]);
 const iconGlyph = key => ICONS[key]?.glyph ?? '';
 const clamp=(n,min,max)=>Math.min(max,Math.max(min,Number(n)||0));
 const safeColor=(value,fallback)=>/^#[\da-f]{6}$/i.test(String(value))?String(value):fallback;
-function normalized(s={}) {const a={...DEFAULT,...s};for(const k of ['leftCount','rightCount','clockCount'])a[k]=clamp(Math.round(a[k]),1,20);for(const [k,c] of [['leftColor',DEFAULT.leftColor],['rightColor',DEFAULT.rightColor],['clockColor',DEFAULT.clockColor]])a[k]=safeColor(a[k],c);for(const [p,n] of [['leftFilled','leftCount'],['rightFilled','rightCount'],['clockFilled','clockCount']])a[p]=clamp(Math.round(a[p]),0,a[n]);a.mode=['bar','clock','panel'].includes(a.mode)?a.mode:'bar';
+function normalized(s={}) {const a={...DEFAULT,...s};for(const k of ['leftCount','rightCount','clockCount'])a[k]=clamp(Math.round(a[k]),1,20);for(const [k,c] of [['leftColor',DEFAULT.leftColor],['rightColor',DEFAULT.rightColor],['clockColor',DEFAULT.clockColor]])a[k]=safeColor(a[k],c);for(const [p,n] of [['leftFilled','leftCount'],['rightFilled','rightCount'],['clockFilled','clockCount']])a[p]=clamp(Math.round(a[p]),0,a[n]);// Notas independentes por etapa. Dados antigos sem notas permanecem válidos.
+for(const [notesKey,countKey] of [['leftStepNotes','leftCount'],['rightStepNotes','rightCount'],['clockStepNotes','clockCount']]){
+ const notes=Array.isArray(a[notesKey])?a[notesKey]:[];
+ a[notesKey]=Array.from({length:a[countKey]},(_,i)=>String(notes[i]??'').slice(0,180));
+}
+a.mode=['bar','clock','panel'].includes(a.mode)?a.mode:'bar';
 const rawTracks=Array.isArray(a.tracks)?a.tracks:DEFAULT_TRACKS;
 a.tracks=rawTracks.slice(0,MAX_TRACKS).map((t,i)=>({
  id:String(t?.id||`track-${i}`).slice(0,60),
@@ -242,13 +247,20 @@ async function refreshDocks(){
  for(const [id,d] of docks)if(!ids.has(id)){docks.delete(id);await d.close();}
  for(const m of all){let d=docks.get(m.id);if(!d){d=new TrackerDock(m.id);docks.set(m.id,d);}await d.render({force:true});}
 }
-function wedges(n,value){const result=[];const r=91,c=110,gap=.012;for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n+gap,b=-Math.PI/2+(i+1)*2*Math.PI/n-gap;const x=t=>(c+r*Math.cos(t)).toFixed(3),y=t=>(c+r*Math.sin(t)).toFixed(3);result.push({index:i,filled:i<value,path:`M ${c} ${c} L ${x(a)} ${y(a)} A ${r} ${r} 0 ${b-a>Math.PI?1:0} 1 ${x(b)} ${y(b)} Z`});}return result;}
+function stepTooltip(label,number,note,filled,isGM){
+ return `${label} — casa ${number}${note && (filled||isGM)?` — ${note}`:''}`;
+}
+function activeStepNote(notes,filled){return filled>0?String(notes?.[filled-1]||''):'';}
+function wedges(n,value,notes=[],isGM=false){const result=[];const r=91,c=110,gap=.012;for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n+gap,b=-Math.PI/2+(i+1)*2*Math.PI/n-gap;const x=t=>(c+r*Math.cos(t)).toFixed(3),y=t=>(c+r*Math.sin(t)).toFixed(3);result.push({index:i,number:i+1,filled:i<value,note:notes[i]||'',tooltip:stepTooltip('Relógio',i+1,notes[i]||'',i<value,isGM),path:`M ${c} ${c} L ${x(a)} ${y(a)} A ${r} ${r} 0 ${b-a>Math.PI?1:0} 1 ${x(b)} ${y(b)} Z`});}return result;}
 const API=foundry.applications.api;
 class TrackerDock extends API.HandlebarsApplicationMixin(API.ApplicationV2){
  static DEFAULT_OPTIONS={id:'engrena-tensao-perigo-dock',tag:'section',classes:['engrena-tensao-perigo'],window:{frame:false,positioned:false},position:{width:440,height:'auto'}};
  static PARTS={main:{template:`modules/${ID}/templates/dock.hbs`}};
  constructor(markerId){super({id:`engrena-tensao-perigo-${markerId}`});this.markerId=markerId;}
- async _prepareContext(){const s=getState(this.markerId);const isGM=game.user.isGM;return {...s,isGM,expanded:s.visible,isPanel:s.mode==='panel',counter:s.mode==='panel'?`${s.tracks.length} trilhas`:s.mode==='clock'?`${s.clockFilled}/${s.clockCount}`:`${s.leftFilled}/${s.leftCount} · ${s.rightFilled}/${s.rightCount}`,isBar:s.mode==='bar',panelTracks:s.tracks.map((t,index)=>({...t,index,value:`${t.filled}/${t.count}`,segments:Array.from({length:t.count},(_,i)=>({index:i,number:i+1,filled:i<t.filled}))})),leftValue:`${s.leftFilled}/${s.leftCount}`,rightValue:`${s.rightFilled}/${s.rightCount}`,clockValue:s.clockFilled,clockComplete:s.clockFilled===s.clockCount,centerColor:s.centerWinner==='left'?s.leftColor:s.centerWinner==='right'?s.rightColor:null,centerIcon:s.centerWinner==='left'?iconGlyph(s.leftIcon):s.centerWinner==='right'?iconGlyph(s.rightIcon):null,clockCenterIcon:s.clockFilled===s.clockCount?iconGlyph(s.clockIcon):null,leftSegments:Array.from({length:s.leftCount},(_,i)=>({index:i,number:i+1,filled:i<s.leftFilled})),rightSegments:Array.from({length:s.rightCount},(_,i)=>({index:i,number:i+1,filled:i<s.rightFilled})).reverse(),clockSegments:wedges(s.clockCount,s.clockFilled),stepSize:s.stepSize};}
+ async _prepareContext(){const s=getState(this.markerId);const isGM=game.user.isGM;return {...s,isGM,expanded:s.visible,isPanel:s.mode==='panel',counter:s.mode==='panel'?`${s.tracks.length} trilhas`:s.mode==='clock'?`${s.clockFilled}/${s.clockCount}`:`${s.leftFilled}/${s.leftCount} · ${s.rightFilled}/${s.rightCount}`,isBar:s.mode==='bar',panelTracks:s.tracks.map((t,index)=>({...t,index,value:`${t.filled}/${t.count}`,segments:Array.from({length:t.count},(_,i)=>({index:i,number:i+1,filled:i<t.filled}))})),leftValue:`${s.leftFilled}/${s.leftCount}`,rightValue:`${s.rightFilled}/${s.rightCount}`,clockValue:s.clockFilled,clockComplete:s.clockFilled===s.clockCount,centerColor:s.centerWinner==='left'?s.leftColor:s.centerWinner==='right'?s.rightColor:null,centerIcon:s.centerWinner==='left'?iconGlyph(s.leftIcon):s.centerWinner==='right'?iconGlyph(s.rightIcon):null,clockCenterIcon:s.clockFilled===s.clockCount?iconGlyph(s.clockIcon):null,leftSegments:Array.from({length:s.leftCount},(_,i)=>({index:i,number:i+1,filled:i<s.leftFilled,tooltip:stepTooltip(s.leftLabel,i+1,s.leftStepNotes[i],i<s.leftFilled,isGM)})),rightSegments:Array.from({length:s.rightCount},(_,i)=>({index:i,number:i+1,filled:i<s.rightFilled,tooltip:stepTooltip(s.rightLabel,i+1,s.rightStepNotes[i],i<s.rightFilled,isGM)})).reverse(),clockSegments:wedges(s.clockCount,s.clockFilled,s.clockStepNotes,isGM),
+ leftActiveNote:activeStepNote(s.leftStepNotes,s.leftFilled),
+ rightActiveNote:activeStepNote(s.rightStepNotes,s.rightFilled),
+ clockActiveNote:activeStepNote(s.clockStepNotes,s.clockFilled),stepSize:s.stepSize};}
  _onRender(context,options){super._onRender(context,options);applyWidth(this.markerId);restorePosition(this.markerId);applySavedHeight(this.markerId);attachDrag(this.markerId);attachResize(this.markerId);this.element.querySelectorAll('[data-etp]').forEach(el=>{el.addEventListener('click',async ev=>{const changeHere=patch=>change(patch,this.markerId);const cmd=el.dataset.etp;if(!game.user.isGM)return;const s=getState(this.markerId);if(cmd==='configure')return configure(this.markerId);if(cmd==='switch')return changeHere({mode:s.mode==='bar'?'clock':s.mode==='clock'?'panel':'bar'});if(cmd==='toggle')return changeHere({visible:!s.visible});if(cmd==='left'||cmd==='right'||cmd==='clock'){const key=cmd==='clock'?'clockFilled':cmd==='left'?'leftFilled':'rightFilled';const index=Number(el.dataset.index);return changeHere({[key]:s[key]===index+1?index:index+1});}if(cmd==='track-step'||cmd==='track-cell'){
  const ti=Number(el.dataset.track);if(!Number.isInteger(ti)||ti<0||ti>=s.tracks.length)return;
  const tracks=s.tracks.map(t=>({...t}));const t=tracks[ti];
@@ -274,6 +286,28 @@ function trackRow(t){
   ${field('Cor',`<input class="etp-track-color" type="color" value="${t.color}">`)}
   ${field('Consequência ao concluir',`<textarea class="etp-track-completion" maxlength="600" rows="2">${esc(t.completion||'')}</textarea>`)}
  </div>`;
+}
+// Cada casa usa um campo curto. A seção permanece recolhida por padrão
+// para não tornar a configuração excessivamente longa.
+function stepNotesFields(key,label,count,notes){
+ const esc=x=>foundry.utils.escapeHTML(String(x??''));
+ return `<details class="etp-step-details" data-step-group="${key}"><summary>${esc(label)} — descrições de cada casa (opcional)</summary>
+ <p class="etp-help">A descrição da etapa atual aparece abaixo do marcador. Passe o mouse para consultar uma casa. Etapas futuras ficam ocultas para jogadores.</p>
+ <div class="etp-step-fields">${Array.from({length:count},(_,i)=>stepNoteRow(key,i,notes?.[i]||'')).join('')}</div></details>`;
+}
+function stepNoteRow(key,index,note){
+ const esc=x=>foundry.utils.escapeHTML(String(x??''));
+ return `<label class="etp-step-row"><span>Casa ${index+1}</span><input type="text" class="etp-step-note" data-step-key="${key}" data-step-index="${index}" maxlength="180" placeholder="Sem efeito específico" value="${esc(note)}" /></label>`;
+}
+function onStepCountChanged(event){
+ const key={leftCount:'leftStepNotes',rightCount:'rightStepNotes',clockCount:'clockStepNotes'}[event.target?.name];
+ if(!key||!event.target.closest('.etp-config-dialog'))return;
+ const details=event.target.closest('#etp-settings-fields')?.querySelector(`[data-step-group="${key}"]`);
+ const holder=details?.querySelector('.etp-step-fields');if(!holder)return;
+ const current=new Map([...holder.querySelectorAll('.etp-step-note')].map(el=>[Number(el.dataset.stepIndex),el.value]));
+ const count=clamp(Math.round(event.target.value),1,20);
+ // Preserva textos inseridos para as casas que ainda existem.
+ holder.innerHTML=Array.from({length:count},(_,i)=>stepNoteRow(key,i,current.get(i)||'')).join('');
 }
 function field(label,input){return `<label class="etp-form-row"><span>${label}</span>${input}</label>`;}
 function iconPicker(fieldName,selected,title){
@@ -303,13 +337,16 @@ ${field('Formato',`<select name="mode"><option value="bar" ${s.mode==='bar'?'sel
 ${field('Nome lado esquerdo',`<input name="leftLabel" maxlength="40" value="${foundry.utils.escapeHTML(s.leftLabel)}">`)}
 ${field('Casas esquerda',`<input name="leftCount" type="number" min="1" max="20" value="${s.leftCount}">`)}
 ${field('Cor esquerda',`<input name="leftColor" type="color" value="${s.leftColor}">`)}
+${stepNotesFields('leftStepNotes','Lado esquerdo',s.leftCount,s.leftStepNotes)}
 ${field('Nome lado direito',`<input name="rightLabel" maxlength="40" value="${foundry.utils.escapeHTML(s.rightLabel)}">`)}
 ${field('Casas direita',`<input name="rightCount" type="number" min="1" max="20" value="${s.rightCount}">`)}
 ${field('Cor direita',`<input name="rightColor" type="color" value="${s.rightColor}">`)}
+${stepNotesFields('rightStepNotes','Lado direito',s.rightCount,s.rightStepNotes)}
 ${iconPicker('leftIcon',s.leftIcon,'Ícone do lado esquerdo')}${iconPicker('rightIcon',s.rightIcon,'Ícone do lado direito')}</fieldset>
 <fieldset><legend>Relógio de perigo</legend>
 ${field('Segmentos',`<input name="clockCount" type="number" min="1" max="20" value="${s.clockCount}">`)}
-${field('Cor do relógio',`<input name="clockColor" type="color" value="${s.clockColor}">`)}${iconPicker('clockIcon',s.clockIcon,'Ícone ao concluir o relógio')}</fieldset>
+${field('Cor do relógio',`<input name="clockColor" type="color" value="${s.clockColor}">`)}
+${stepNotesFields('clockStepNotes','Relógio',s.clockCount,s.clockStepNotes)}${iconPicker('clockIcon',s.clockIcon,'Ícone ao concluir o relógio')}</fieldset>
 <fieldset><legend>Eventos narrativos e vínculos (opcionais)</legend>
 <p class="etp-help">Os eventos são disparados quando uma meta é atingida, não a cada atualização. O vínculo executa apenas um salto por conclusão. Escolha o destino exato ao avançar um marcador; a opção automática mantém a lógica antiga.</p>
 ${field('Avanço rápido (casas)',`<input name="stepSize" type="number" min="1" max="10" value="${s.stepSize}">`)}
@@ -337,7 +374,14 @@ for(const control of root.querySelectorAll('input[name], select[name], textarea[
  const count=clamp(Math.round(row.querySelector('.etp-track-count')?.value||6),1,30);
  return {id:row.dataset.trackId||`track-${Date.now()}-${i}`,label:row.querySelector('.etp-track-label')?.value||`Trilha ${i+1}`,description:row.querySelector('.etp-track-description')?.value||'',color:row.querySelector('.etp-track-color')?.value||'#668f85',completion:row.querySelector('.etp-track-completion')?.value||'',count,filled:Math.min(old?.filled||0,count)};
  });
- await change({tracks,title:fd.get('title'),mode:fd.get('mode'),stepSize:fd.get('stepSize'),completionLeft:fd.get('completionLeft'),completionRight:fd.get('completionRight'),completionClock:fd.get('completionClock'),completionVisibility:fd.get('completionVisibility'),linkedMarkerId:fd.get('linkedMarkerId'),linkedAction:fd.get('linkedAction'),linkedAmount:fd.get('linkedAmount'),linkedTarget:fd.get('linkedTarget'),leftLabel:fd.get('leftLabel'),leftCount:fd.get('leftCount'),leftColor:fd.get('leftColor'),rightLabel:fd.get('rightLabel'),rightCount:fd.get('rightCount'),rightColor:fd.get('rightColor'),leftIcon:fd.get('leftIcon'),rightIcon:fd.get('rightIcon'),clockIcon:fd.get('clockIcon'),clockCount:fd.get('clockCount'),clockColor:fd.get('clockColor'),visible:fd.has('visible')},markerId);return true;}}]});
+ const readStepNotes=(key,countName)=>{
+ const max=clamp(Math.round(fd.get(countName)),1,20);
+ const inputs=[...root.querySelectorAll(`.etp-step-note[data-step-key="${key}"]`)];
+ const notes=Array.from({length:max},()=> '');
+ for(const input of inputs){const index=Number(input.dataset.stepIndex);if(index>=0&&index<max)notes[index]=input.value.slice(0,180);}
+ return notes;
+};
+await change({leftStepNotes:readStepNotes('leftStepNotes','leftCount'),rightStepNotes:readStepNotes('rightStepNotes','rightCount'),clockStepNotes:readStepNotes('clockStepNotes','clockCount'),tracks,title:fd.get('title'),mode:fd.get('mode'),stepSize:fd.get('stepSize'),completionLeft:fd.get('completionLeft'),completionRight:fd.get('completionRight'),completionClock:fd.get('completionClock'),completionVisibility:fd.get('completionVisibility'),linkedMarkerId:fd.get('linkedMarkerId'),linkedAction:fd.get('linkedAction'),linkedAmount:fd.get('linkedAmount'),linkedTarget:fd.get('linkedTarget'),leftLabel:fd.get('leftLabel'),leftCount:fd.get('leftCount'),leftColor:fd.get('leftColor'),rightLabel:fd.get('rightLabel'),rightCount:fd.get('rightCount'),rightColor:fd.get('rightColor'),leftIcon:fd.get('leftIcon'),rightIcon:fd.get('rightIcon'),clockIcon:fd.get('clockIcon'),clockCount:fd.get('clockCount'),clockColor:fd.get('clockColor'),visible:fd.has('visible')},markerId);return true;}}]});
  await dialogPromise;
 }
 Hooks.on('getSceneControlButtons',controls=>{
@@ -402,6 +446,7 @@ Hooks.once('ready',async()=>{
  document.addEventListener('click',onConfigTrackClick);
  document.addEventListener('click',onManagerClick);
  document.addEventListener('change',onLinkMarkerChanged);
+ document.addEventListener('input',onStepCountChanged);
  window.addEventListener('resize',()=>{for(const id of docks.keys()){applyWidth(id);restorePosition(id);applySavedHeight(id);}});
  if(game.user.isGM && getCollection().length===0){
   const legacy=normalized(game.settings.get(ID,'state'));

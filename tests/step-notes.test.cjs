@@ -1,0 +1,15 @@
+const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
+let src=fs.readFileSync(require('path').join(__dirname,'../scripts/main.js'),'utf8');src=src.slice(0,src.indexOf("Hooks.on('getSceneControlButtons'"));
+const mock={game:{world:{id:'test'},user:{isGM:true}},window:{innerWidth:1200,innerHeight:800},foundry:{applications:{api:{ApplicationV2:class{},HandlebarsApplicationMixin:()=>class{}}},utils:{escapeHTML:x=>x}},console};
+vm.createContext(mock);vm.runInContext(src+';this.api={normalized,stepTooltip,activeStepNote,wedges};',mock);const {normalized,stepTooltip,activeStepNote,wedges}=mock.api;
+const s=normalized({leftCount:3,rightCount:2,clockCount:4,leftStepNotes:['Primeiro passo','Segundo passo','Terceiro'],rightStepNotes:['Aliados avançam'],clockStepNotes:['A','B','C','D']});
+assert.equal(s.leftStepNotes.length,3);assert.equal(s.leftStepNotes[1],'Segundo passo');
+assert.equal(s.rightStepNotes.length,2);assert.equal(s.clockStepNotes[3],'D');
+assert.equal(normalized({leftCount:2,leftStepNotes:['a','b','c']}).leftStepNotes.length,2);
+assert.equal(normalized({leftCount:3}).leftStepNotes[0],'');
+assert.equal(activeStepNote(s.leftStepNotes,2),'Segundo passo');assert.equal(activeStepNote(s.leftStepNotes,0),'');
+assert.ok(stepTooltip('Teste',2,'Segredo',false,false).indexOf('Segredo')<0);
+assert.ok(stepTooltip('Teste',2,'Segredo',false,true).includes('Segredo'));
+assert.ok(stepTooltip('Teste',2,'Segredo',true,false).includes('Segredo'));
+const w=wedges(4,1,s.clockStepNotes,false);assert.equal(w[0].note,'A');assert.ok(!w[1].tooltip.includes('B'));
+console.log('OK: descrições por casa, limites e visibilidade de notas futuras');

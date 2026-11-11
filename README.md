@@ -1,4 +1,4 @@
-# Engrena — Tensão & Perigo v0.9.1
+# Engrena — Tensão & Perigo v0.9.2
 
 Compatibilidade declarada: Foundry VTT 13.x a 14.369. Sistema de RPG: agnóstico.
 
@@ -25,10 +25,6 @@ O tamanho e a posição de cada instância são locais por navegador e por marca
 ## Instalação manual
 
 Feche o Foundry e substitua a pasta `Data/modules/engrena-tensao-perigo` pela pasta do ZIP. Reinicie e ative o módulo no mundo.
-
-## Manifesto para Instalação via Foundry
-
-https://raw.githubusercontent.com/GutoOliveiraBR/engrena-tensao-perigo/main/module.json
 
 ## Segurança e testes
 
@@ -85,3 +81,24 @@ reconfigure o destino. Continua proibido o encadeamento recursivo de vínculos.
 **Teste necessário no Foundry:** confirmar exibição dinâmica do seletor, salvamento,
 revelação, avanço de ambos os lados, trilhas, persistência após reiniciar,
 permissões GM/jogadores e execução de eventos uma única vez por conclusão.
+
+## v0.9.2 — Descrições opcionais por casa (barra e relógio)
+
+Na configuração de cada marcador, expanda **descrições de cada casa** para o lado esquerdo,
+o direito ou o relógio. Digite até 180 caracteres por casa; deixe em branco as etapas sem efeito especial.
+
+- Quando houver progresso, a descrição da etapa atual aparece em texto discreto abaixo do marcador.
+- Passar o mouse sobre uma casa/segmento mostra sua descrição.
+- Os jogadores só veem a descrição das etapas já preenchidas; o mestre pode inspecionar todas.
+- Mudar a quantidade de casas atualiza o editor e mantém as descrições das casas preservadas.
+- O recurso é **informativo**, sem alterar fichas, efeitos ativos ou rolagens automaticamente.
+- Os marcadores existentes permanecem válidos e começam com as descrições em branco.
+
+### Instalação pelo manifesto (Foundry VTT)
+
+Copie este endereço no campo **Manifest URL** do instalador de módulos:
+
+`https://raw.githubusercontent.com/GutoOliveiraBR/engrena-tensao-perigo/main/module.json`
+
+Após o desenvolvedor publicar o manifesto atualizado e o ZIP na [Release v0.9.2](https://github.com/GutoOliveiraBR/engrena-tensao-perigo/releases), utilize **Check Update** no gerenciador do Foundry.
+O link do manifesto é permanente; os nomes e links dos arquivos ZIP mudam a cada versão.

@@ -30,24 +30,27 @@
       {{else if isBar}}
         <div class="etp-bar">
           <div class="etp-side etp-left">
-            {{#each leftSegments}}<button type="button" class="etp-cell {{#if filled}}is-filled{{/if}}" style="--etp-color:{{../leftColor}}" data-etp="left" data-index="{{index}}" title="Lado esquerdo — casa {{number}}" {{#unless ../isGM}}disabled{{/unless}}></button>{{/each}}
+            {{#each leftSegments}}<button type="button" class="etp-cell {{#if filled}}is-filled{{/if}}" style="--etp-color:{{../leftColor}}" data-etp="left" data-index="{{index}}" title="{{tooltip}}" {{#unless ../isGM}}disabled{{/unless}}></button>{{/each}}
           </div>
           <div class="etp-center {{#if centerWinner}}is-active{{/if}}" {{#if centerWinner}}style="--etp-center-color:{{centerColor}}"{{/if}} title="O primeiro lado que completar conquista o centro">{{#if centerIcon}}<span class="etp-victory-icon" aria-label="Vitória">{{centerIcon}}</span>{{/if}}</div>
           <div class="etp-side etp-right">
-            {{#each rightSegments}}<button type="button" class="etp-cell {{#if filled}}is-filled{{/if}}" style="--etp-color:{{../rightColor}}" data-etp="right" data-index="{{index}}" title="Lado direito — casa {{number}}" {{#unless ../isGM}}disabled{{/unless}}></button>{{/each}}
+            {{#each rightSegments}}<button type="button" class="etp-cell {{#if filled}}is-filled{{/if}}" style="--etp-color:{{../rightColor}}" data-etp="right" data-index="{{index}}" title="{{tooltip}}" {{#unless ../isGM}}disabled{{/unless}}></button>{{/each}}
           </div>
         </div>
         <footer class="etp-footer"><span>{{leftLabel}} · {{leftValue}}</span><span>{{rightLabel}} · {{rightValue}}</span></footer>
+        {{#if leftActiveNote}}<p class="etp-current-step-note" title="{{leftActiveNote}}"><strong>{{leftLabel}}:</strong> {{leftActiveNote}}</p>{{/if}}
+        {{#if rightActiveNote}}<p class="etp-current-step-note" title="{{rightActiveNote}}"><strong>{{rightLabel}}:</strong> {{rightActiveNote}}</p>{{/if}}
       {{else}}
         <div class="etp-clock-wrap">
           <svg class="etp-clock" viewBox="0 0 220 220" role="img" aria-label="Relógio de perigo {{clockValue}} de {{clockCount}}">
             {{#each clockSegments}}
-              <path d="{{path}}" class="etp-wedge {{#if filled}}is-filled{{/if}}" style="--etp-color:{{../clockColor}}" data-etp="clock" data-index="{{index}}" />
+              <path d="{{path}}" class="etp-wedge {{#if filled}}is-filled{{/if}}" style="--etp-color:{{../clockColor}}" data-etp="clock" data-index="{{index}}"><title>{{tooltip}}</title></path>
             {{/each}}
             <circle cx="110" cy="110" r="39" class="etp-clock-center {{#if clockComplete}}is-complete{{/if}}" style="--etp-color:{{clockColor}}" />
             {{#if clockComplete}}{{#if clockCenterIcon}}<text x="110" y="127" class="etp-clock-skull" aria-label="Relógio concluído">{{clockCenterIcon}}</text>{{/if}}{{else}}<text x="110" y="117" class="etp-clock-text">{{clockValue}}/{{clockCount}}</text>{{/if}}
           </svg>
         </div>
+        {{#if clockActiveNote}}<p class="etp-current-step-note" title="{{clockActiveNote}}">{{clockActiveNote}}</p>{{/if}}
       {{/if}}
       {{#if isGM}}
         {{#if isPanel}}
