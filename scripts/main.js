@@ -228,6 +228,44 @@ async function change(patch,markerId){
  for(const event of events)await announceCompletion(next,event);
  if(targetEvent)for(const event of targetEvent.events)await announceCompletion(targetEvent.marker,event);
 }
+// Integração pública opcional: progresso com recibo idempotente por despacho.
+// A marca de aplicação e o novo valor são persistidos na MESMA atualização de marcadores.
+let integrationTail=Promise.resolve();
+function integrationTargets(marker){return linkTargets(marker);}
+async function applyMissionResultOnce({eventId,markerId,target,delta}){
+ if(!game.user?.isGM)throw new Error('Somente o GM pode alterar marcadores.');
+ const key=String(eventId??'');
+ if(!/^engrena-mission:[A-Za-z0-9_-]{1,80}:[A-Za-z0-9_-]{1,80}$/.test(key))throw new Error('Identificador de integração inválido.');
+ const amount=Number(delta);
+ if(!Number.isSafeInteger(amount)||amount < -10||amount > 10)throw new Error('Avanço deve estar entre -10 e +10.');
+ const marker=getCollection().find(m=>m.id===markerId);
+ if(!marker)throw new Error('Marcador vinculado não encontrado.');
+ const targetKey=String(target??'');
+ if(!integrationTargets(marker).some(x=>x.value===targetKey))throw new Error('Contador vinculado não encontrado.');
+ const receipts=Array.isArray(marker.integrationReceipts)?marker.integrationReceipts:[];
+ if(receipts.includes(key))return {status:'already-applied',markerId,target:targetKey,delta:amount};
+ let patch={integrationReceipts:[...receipts,key]};
+ let previous=0,next=0;
+ if(marker.mode==='clock'){
+  previous=marker.clockFilled;next=clamp(previous+amount,0,marker.clockCount);patch.clockFilled=next;
+ }else if(marker.mode==='bar'){
+  const field=targetKey==='left'?'leftFilled':'rightFilled';
+  previous=marker[field];next=clamp(previous+amount,0,marker[targetKey==='left'?'leftCount':'rightCount']);patch[field]=next;
+ }else{
+  const track=marker.tracks.find(t=>`track:${t.id}`===targetKey);
+  if(!track)throw new Error('Trilha vinculada não encontrada.');
+  previous=track.filled;next=clamp(previous+amount,0,track.count);
+  patch.tracks=marker.tracks.map(t=>t.id===track.id?{...t,filled:next}:t);
+ }
+ // `change` também processa os eventos e vínculos já existentes neste módulo.
+ await change(patch,markerId);
+ return {status:'applied',markerId,title:marker.title,target:targetKey,previous,next,delta:next-previous};
+}
+function applyMissionResult(payload){
+ const result=integrationTail.then(()=>applyMissionResultOnce(payload));
+ integrationTail=result.catch(()=>{});
+ return result;
+}
 async function createMarker(mode='clock',duplicateId=null){
  if(!game.user.isGM)return;
  const all=getCollection();if(all.length>=MAX_MARKERS){ui.notifications.warn(`Máximo de ${MAX_MARKERS} marcadores.`);return;}
@@ -454,5 +492,5 @@ Hooks.once('ready',async()=>{
  }
  await refreshDocks();
  game.socket?.on(`module.${ID}`,payload=>{if(payload?.type==='refresh')refreshDocks();});
- game.engrenaTensaoPerigo={open:openManager,create:createMarker,configure,change,getState,list:getCollection};
+ game.engrenaTensaoPerigo={open:openManager,create:createMarker,configure,change,getState,list:getCollection, integrationTargets,applyMissionResult};
 });

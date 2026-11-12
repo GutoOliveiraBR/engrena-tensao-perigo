@@ -102,3 +102,7 @@ Copie este endereço no campo **Manifest URL** do instalador de módulos:
 
 Após o desenvolvedor publicar o manifesto atualizado e o ZIP na [Release v0.9.2](https://github.com/GutoOliveiraBR/engrena-tensao-perigo/releases), utilize **Check Update** no gerenciador do Foundry.
 O link do manifesto é permanente; os nomes e links dos arquivos ZIP mudam a cada versão.
+
+### Integração com Engrena — Companhias & Operações
+
+A versão 0.9.3 oferece API opcional para a Beta 2.5 de Companhias & Operações. No painel de missão, o GM escolhe marcador e contador, e define avanço/recuo por resultado. Os recibos persistidos impedem aplicar duas vezes o mesmo despacho. A API exige GM e não interfere nas funções anteriores de marcadores, conclusão e vínculos.

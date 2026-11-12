@@ -32,3 +32,8 @@
 - Ampliada a faixa declarada para Foundry v13 até 14.369 (v13 ainda requer testes de execução).
 - Adicionados os endereços de repositório, manifesto e ZIP da Release GitHub.
 - Sem mudanças de lógica em scripts/main.js.
+
+## 0.9.3 — API de integração Engrena
+- `game.engrenaTensaoPerigo.applyMissionResult` aplica alterações autenticadas por GM, com recibo idempotente.
+- `integrationTargets` lista os contadores utilizáveis por integrações.
+- Avanços e recuos preservam limites e gatilhos de conclusão.

@@ -1,0 +1,23 @@
+const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('node:assert/strict');
+let source=fs.readFileSync(path.join(__dirname,'../scripts/main.js'),'utf8');source=source.slice(0,source.indexOf("Hooks.on('getSceneControlButtons'"));
+const settings=new Map();const game={world:{id:'test'},user:{isGM:true},settings:{get:(_,key)=>settings.get(key),set:async(_,key,v)=>settings.set(key,v)},socket:{emit(){}},users:[]};
+const ctx={game,window:{innerWidth:1200,innerHeight:800},localStorage:{getItem(){return null}},foundry:{utils:{randomID(){return 'random'},escapeHTML:s=>String(s)},applications:{api:{HandlebarsApplicationMixin:()=>class{},ApplicationV2:class{}}}},console,ChatMessage:{create:async()=>{}},ui:{notifications:{warn(){}}}};
+vm.createContext(ctx);vm.runInContext(source+'\nthis.T={normalized,getCollection,applyMissionResult};',ctx);
+const T=ctx.T;
+function set(v){settings.set('markers',v)};
+(async()=>{
+ set([{id:'c',...T.normalized({mode:'clock',clockCount:6,clockFilled:3})}]);
+ let a=await T.applyMissionResult({eventId:'engrena-mission:co1:op1',markerId:'c',target:'clock',delta:-2});
+ assert.equal(a.next,1);assert.equal(a.delta,-2);
+ a=await T.applyMissionResult({eventId:'engrena-mission:co1:op1',markerId:'c',target:'clock',delta:-2});assert.equal(a.status,'already-applied');assert.equal(T.getCollection()[0].clockFilled,1);
+ const batch=await Promise.all([T.applyMissionResult({eventId:'engrena-mission:co1:op2',markerId:'c',target:'clock',delta:2}),T.applyMissionResult({eventId:'engrena-mission:co1:op2',markerId:'c',target:'clock',delta:2})]);assert.deepEqual(batch.map(v=>v.status),['applied','already-applied']);assert.equal(T.getCollection()[0].clockFilled,3);
+ await assert.rejects(T.applyMissionResult({eventId:'engrena-mission:co1:op3',markerId:'wrong',target:'clock',delta:1}),/não encontrado/);
+ await assert.rejects(T.applyMissionResult({eventId:'engrena-mission:co1:op3',markerId:'c',target:'left',delta:1}),/não encontrado/);
+ await assert.rejects(T.applyMissionResult({eventId:'engrena-mission:co1:op3',markerId:'c',target:'clock',delta:12}),/entre/);
+ set([{id:'b',...T.normalized({mode:'bar',leftCount:3,rightCount:3,leftFilled:1,rightFilled:1})}]);
+ a=await T.applyMissionResult({eventId:'engrena-mission:co1:op4',markerId:'b',target:'right',delta:10});assert.equal(a.next,3);assert.equal(T.getCollection()[0].centerWinner,'right');
+ set([{id:'p',...T.normalized({mode:'panel',tracks:[{id:'a',label:'A',count:4,filled:2},{id:'b',label:'B',count:4,filled:1}]})}]);
+ a=await T.applyMissionResult({eventId:'engrena-mission:co1:op5',markerId:'p',target:'track:b',delta:-1});assert.equal(a.next,0);assert.equal(T.getCollection()[0].tracks[0].filled,2);
+ game.user.isGM=false;await assert.rejects(T.applyMissionResult({eventId:'engrena-mission:co1:op6',markerId:'p',target:'track:b',delta:1}),/GM/);
+ console.log('PASS integration: recuo, deduplicação, concorrência, alvo inválido, limites, conclusão, trilhas e permissão');
+})().catch(e=>{console.error(e);process.exitCode=1});
